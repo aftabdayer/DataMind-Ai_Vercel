@@ -1,10 +1,12 @@
 """
 report_generator.py — PDF report builder for DataMind AI
-Cover page + 6 sections: Executive Summary, Key Findings, Statistical Summary,
-Anomalies & Data Quality, Actionable Recommendations, Appendix — Column Profiles
+Cover page + 7 sections: Executive Summary, Key Findings, Charts,
+Statistical Summary, Anomalies & Data Quality, Actionable Recommendations,
+Appendix — Column Profiles
 """
 
 import io
+import base64
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -50,6 +52,62 @@ GREY         = HexColor("#6b7280")
 LIGHT_GREY   = HexColor("#f9fafb")
 BORDER       = HexColor("#e5e7eb")
 PAGE_BG      = HexColor("#ffffff")
+
+
+# ─────────────────────────────────────────────
+# CHART → IMAGE HELPER
+# ─────────────────────────────────────────────
+
+def _plotly_to_image(fig, width: int = 700, height: int = 340) -> Optional[io.BytesIO]:
+    """
+    Convert a Plotly figure to a PNG BytesIO object for embedding in PDF.
+    Uses kaleido if available, falls back to a graceful skip.
+    """
+    try:
+        import plotly.io as pio
+        # Ensure white background for PDF
+        fig_copy = fig
+        try:
+            import copy
+            fig_copy = copy.deepcopy(fig)
+            fig_copy.update_layout(
+                paper_bgcolor="white",
+                plot_bgcolor="rgba(248,249,255,0.9)",
+            )
+        except Exception:
+            pass
+
+        img_bytes = pio.to_image(fig_copy, format="png", width=width, height=height, scale=2)
+        return io.BytesIO(img_bytes)
+    except Exception:
+        return None
+
+
+def _chart_image_flowable(fig, caption: str, S: dict,
+                           max_width_mm: float = 155) -> list:
+    """
+    Returns a list of flowables: [Image, caption Paragraph] or a fallback card.
+    """
+    buf = _plotly_to_image(fig)
+    if buf is None:
+        # Fallback: show a text placeholder card
+        return [
+            _coloured_card(
+                f"[Chart: {caption} — install kaleido to embed charts in PDF]",
+                BORDER, LIGHT_GREY, S
+            ),
+            Spacer(1, 3 * mm),
+        ]
+
+    max_w = max_width_mm * mm
+    img = Image(buf, width=max_w, height=max_w * 340 / 700)
+    img.hAlign = "CENTRE"
+    flowables = [
+        img,
+        Paragraph(caption, S["caption"]),
+        Spacer(1, 4 * mm),
+    ]
+    return flowables
 
 
 # ─────────────────────────────────────────────
@@ -111,7 +169,7 @@ def _styles() -> dict:
     )
     S["caption"] = ParagraphStyle(
         "caption", fontName="Helvetica-Oblique", fontSize=8,
-        textColor=GREY, leading=11, spaceAfter=6,
+        textColor=GREY, leading=11, spaceAfter=6, alignment=TA_CENTER,
     )
     S["badge_text"] = ParagraphStyle(
         "badge_text", fontName="Helvetica-Bold", fontSize=8,
@@ -222,7 +280,6 @@ def _metric_row(items: list, S: dict) -> Table:
         ("BOTTOMPADDING",(0, 0), (-1, -1), 8),
         ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN",        (0, 0), (-1, -1), "CENTRE"),
-        ("ROUNDEDCORNERS", [6]),
     ]))
     return t
 
@@ -266,25 +323,9 @@ def _styled_table(headers: list, rows: list, S: dict,
 
 def _build_cover(story: list, title: str, company: str, analyst: str,
                  filename: str, df: pd.DataFrame, tone: str, S: dict):
-    from reportlab.platypus import KeepInFrame
-
     W, H = A4
 
-    class CoverBackground:
-        def __init__(self):
-            self.width = W
-            self.height = H
-
-        def wrap(self, aw, ah):
-            return self.width, self.height
-
-        def draw(self):
-            pass
-
-    # We'll use a Table as the cover page layout
     cover_items = []
-
-    # Gradient-ish top block using a Table
     cover_items.append(Spacer(1, 25 * mm))
 
     # Badge
@@ -294,13 +335,12 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
     ))]], colWidths=[80 * mm])
     badge_t.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), HexColor("#1e1b4b")),
-        ("ROUNDEDCORNERS",[999]),
         ("TOPPADDING",    (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("ALIGN",         (0, 0), (-1, -1), "CENTRE"),
     ]))
 
-    # Title block (dark gradient simulation)
+    # Title block
     title_block_data = [
         [Spacer(1, 8 * mm)],
         [badge_t],
@@ -363,10 +403,11 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
     sections = [
         ("01", "Executive Summary"),
         ("02", "Key Findings"),
-        ("03", "Statistical Summary"),
-        ("04", "Anomalies & Data Quality"),
-        ("05", "Actionable Recommendations"),
-        ("06", "Appendix — Column Profiles"),
+        ("03", "Charts & Visualisations"),
+        ("04", "Statistical Summary"),
+        ("05", "Anomalies & Data Quality"),
+        ("06", "Actionable Recommendations"),
+        ("07", "Appendix — Column Profiles"),
     ]
     toc_rows = [[
         Paragraph(num, ParagraphStyle("tn", fontName="Helvetica-Bold", fontSize=10,
@@ -402,10 +443,8 @@ def _build_key_findings(story: list, text: str, S: dict):
     story.extend(_section_header("2", "Key Findings", S))
     lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
     for line in lines:
-        # detect numbered lines
         is_numbered = len(line) > 1 and line[0].isdigit()
         if is_numbered:
-            # Split on first colon if present
             if ":" in line:
                 parts = line.split(":", 1)
                 title_part = parts[0].strip().lstrip("0123456789. ").strip("*").strip()
@@ -422,9 +461,74 @@ def _build_key_findings(story: list, text: str, S: dict):
         story.append(Spacer(1, 3 * mm))
 
 
+def _build_charts_section(story: list, charts: list, S: dict):
+    """Section 3 — embed Plotly chart images into the PDF."""
+    story.extend(_section_header("3", "Charts & Visualisations", S))
+
+    if not charts:
+        story.append(Paragraph("No charts were generated for this dataset.", S["body"]))
+        return
+
+    chart_labels = [
+        "Trend Over Time",
+        "Category Comparison",
+        "Correlation Heatmap",
+        "Distribution (Violin)",
+        "Scatter Plot",
+        "Composition (Pie/Donut)",
+    ]
+
+    # Pair charts side-by-side where possible (two per row)
+    pair_width_mm = 74   # each chart when two per row
+    single_width_mm = 155
+
+    i = 0
+    while i < len(charts):
+        # Try to fit two charts side by side, except heatmap/violin (indices 2,3) go full-width
+        if i + 1 < len(charts) and i not in (2, 3) and (i + 1) not in (2, 3):
+            # Two charts side by side
+            left_label  = chart_labels[i]  if i  < len(chart_labels) else f"Chart {i+1}"
+            right_label = chart_labels[i+1] if i+1 < len(chart_labels) else f"Chart {i+2}"
+
+            left_buf  = _plotly_to_image(charts[i],   width=560, height=300)
+            right_buf = _plotly_to_image(charts[i+1], width=560, height=300)
+
+            def _img_or_placeholder(buf, label, S=S):
+                if buf is None:
+                    return [_coloured_card(
+                        f"[{label} — install kaleido to embed charts]",
+                        BORDER, LIGHT_GREY, S
+                    )]
+                w = pair_width_mm * mm
+                img = Image(buf, width=w, height=w * 300 / 560)
+                img.hAlign = "CENTRE"
+                return [img, Paragraph(label, S["caption"])]
+
+            left_cell  = _img_or_placeholder(left_buf,  left_label)
+            right_cell = _img_or_placeholder(right_buf, right_label)
+
+            pair_table = Table(
+                [[left_cell, right_cell]],
+                colWidths=[(pair_width_mm + 2) * mm, (pair_width_mm + 2) * mm],
+            )
+            pair_table.setStyle(TableStyle([
+                ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING",  (0, 0), (-1, -1), 2),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+            ]))
+            story.append(pair_table)
+            story.append(Spacer(1, 4 * mm))
+            i += 2
+        else:
+            # Single chart full-width
+            label = chart_labels[i] if i < len(chart_labels) else f"Chart {i+1}"
+            story.extend(_chart_image_flowable(charts[i], label, S, single_width_mm))
+            i += 1
+
+
 def _build_statistical_summary(story: list, df: pd.DataFrame,
                                 stats_summary: dict, S: dict):
-    story.extend(_section_header("3", "Statistical Summary", S))
+    story.extend(_section_header("4", "Statistical Summary", S))
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     if not numeric_cols:
         story.append(Paragraph("No numeric columns found.", S["body"]))
@@ -455,10 +559,9 @@ def _build_statistical_summary(story: list, df: pd.DataFrame,
 
 
 def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
-    story.extend(_section_header("4", "Anomalies & Data Quality", S))
+    story.extend(_section_header("5", "Anomalies & Data Quality", S))
     paras = [p.strip() for p in text.split("\n") if p.strip()]
     for para in paras:
-        # choose colour based on keywords
         if any(w in para.lower() for w in ["critical", "extreme", "major", "significant"]):
             c = _coloured_card(para, RED, RED_LIGHT, S)
         elif any(w in para.lower() for w in ["moderate", "warning", "missing", "outlier", "duplicate"]):
@@ -484,7 +587,7 @@ def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
 
 
 def _build_recommendations(story: list, text: str, S: dict):
-    story.extend(_section_header("5", "Actionable Recommendations", S))
+    story.extend(_section_header("6", "Actionable Recommendations", S))
     lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
     for line in lines:
         is_numbered = len(line) > 1 and line[0].isdigit()
@@ -501,7 +604,7 @@ def _build_recommendations(story: list, text: str, S: dict):
 
 
 def _build_appendix(story: list, df: pd.DataFrame, stats_summary: dict, S: dict):
-    story.extend(_section_header("6", "Appendix — Column Profiles", S))
+    story.extend(_section_header("7", "Appendix — Column Profiles", S))
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     key_stats = stats_summary.get("key_stats", {})
@@ -562,6 +665,8 @@ def generate_pdf_report(
 ) -> bytes:
     """
     Build and return the complete PDF as bytes.
+    Charts are embedded as PNG images if kaleido is installed,
+    otherwise a text placeholder is shown (no crash).
     """
     buf = io.BytesIO()
     S = _styles()
@@ -601,22 +706,25 @@ def generate_pdf_report(
     _build_key_findings(story, key_findings, S)
     story.append(PageBreak())
 
-    # Section 3: Statistical Summary
+    # Section 3: Charts & Visualisations  ← NEW
+    _build_charts_section(story, charts, S)
+    story.append(PageBreak())
+
+    # Section 4: Statistical Summary
     _build_statistical_summary(story, df, stats_summary, S)
     story.append(PageBreak())
 
-    # Section 4: Anomalies
+    # Section 5: Anomalies
     _build_anomalies(story, anomaly_narrative, anomalies, S)
     story.append(PageBreak())
 
-    # Section 5: Recommendations
+    # Section 6: Recommendations
     _build_recommendations(story, recommendations, S)
     story.append(PageBreak())
 
-    # Section 6: Appendix
+    # Section 7: Appendix
     _build_appendix(story, df, stats_summary, S)
 
-    # Build
     doc.build(story)
     buf.seek(0)
     return buf.read()
