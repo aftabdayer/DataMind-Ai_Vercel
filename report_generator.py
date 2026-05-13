@@ -244,42 +244,11 @@ def _body_tpl(doc, title: str):
 def _section_header(num: str, title: str, S: dict) -> list:
     """Section header with vertical bar accent — matches Stitch web design."""
     label = f"0{num}" if len(num) == 1 else num
-    # Bar + number + title in a single table row
-    bar_cell = Table(
-        [[""]], colWidths=[3], rowHeights=[22 * mm / 2]
-    )
-    bar_cell.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), PURPLE_BAR),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-    ]))
-    num_para = Paragraph(
-        label,
-        ParagraphStyle("snum", fontName="Helvetica-Bold", fontSize=7,
-                       textColor=PURPLE, alignment=TA_CENTER, leading=9),
-    )
-    title_para = Paragraph(title, S["section_title"])
-    label_para = Paragraph(
-        f"SECTION {label}", S["section_label"]
-    )
-    avail = A4[0] - 40 * mm
-    header_row = Table(
-        [[bar_cell, [label_para, title_para]]],
-        colWidths=[4, avail - 4],
-    )
-    header_row.setStyle(TableStyle([
-        ("VALIGN",        (0, 0), (-1, -1), "BOTTOM"),
-        ("LEFTPADDING",   (1, 0), (1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-    ]))
     return [
-        header_row,
-        HRFlowable(width="100%", thickness=0.5, color=BORDER,
-                   spaceAfter=10, spaceBefore=4),
+        Paragraph(f"{label}  ·  SECTION", S["section_label"]),
+        Paragraph(title, S["section_title"]),
+        HRFlowable(width="100%", thickness=1.5, color=PURPLE,
+                   spaceAfter=10, spaceBefore=2),
     ]
 
 
@@ -485,31 +454,22 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
 
     # ── Table of Contents ──
     avail = W - 40 * mm
-    toc_hdr_row = Table([[
-        Table([[""]], colWidths=[3], rowHeights=[6 * mm]),
-        Paragraph("Table of Contents",
-                  ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=11,
-                                 textColor=DARK, leading=14)),
-    ]], colWidths=[5, avail - 5])
-    toc_hdr_row.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, -1), PURPLE),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING",   (1, 0), (1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("LINEBELOW",     (0, 0), (-1, -1), 1.5, PURPLE),
-    ]))
-    story.append(toc_hdr_row)
-    story.append(Spacer(1, 3 * mm))
+    story.append(Paragraph(
+        "Table of Contents",
+        ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=11,
+                       textColor=DARK, leading=14, spaceAfter=3),
+    ))
+    story.append(HRFlowable(width="100%", thickness=2, color=PURPLE,
+                            spaceAfter=4, spaceBefore=2))
 
     sections = [
-        ("01", "Executive Summary",         "Dataset scope, key patterns, and business implications"),
-        ("02", "Key Findings",              "Five data-driven insights with specific metrics"),
-        ("03", "Charts & Visualisations",   "Trend, distribution, correlation, and composition charts"),
-        ("04", "Statistical Summary",       "Descriptive statistics and correlation analysis"),
-        ("05", "Anomalies & Data Quality",  "Outliers, missing data, skewness, and data health"),
-        ("06", "Actionable Recommendations","Five strategic actions based on the AI analysis"),
-        ("07", "Appendix — Column Profiles","Per-column numeric and categorical profile breakdowns"),
+        ("01", "Executive Summary",          "Dataset scope, key patterns, and business implications"),
+        ("02", "Key Findings",               "Five data-driven insights with specific metrics"),
+        ("03", "Charts & Visualisations",    "Trend, distribution, correlation, and composition charts"),
+        ("04", "Statistical Summary",        "Descriptive statistics and correlation analysis"),
+        ("05", "Anomalies & Data Quality",   "Outliers, missing data, skewness, and data health"),
+        ("06", "Actionable Recommendations", "Five strategic actions based on the AI analysis"),
+        ("07", "Appendix — Column Profiles", "Per-column numeric and categorical profile breakdowns"),
     ]
     toc_rows = [[
         Paragraph(num, S["toc_num"]),
@@ -517,11 +477,13 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
         Paragraph(desc, S["body_small"]),
     ] for num, name, desc in sections]
 
-    toc_t = Table(toc_rows, colWidths=[12 * mm, 54 * mm, avail - 66 * mm])
+    cw1, cw2 = 12 * mm, 56 * mm
+    toc_t = Table(toc_rows, colWidths=[cw1, cw2, avail - cw1 - cw2])
     toc_t.setStyle(TableStyle([
         ("TOPPADDING",    (0, 0), (-1, -1), 6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ("LEFTPADDING",   (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 5),
         ("LINEBELOW",     (0, 0), (-1, -1), 0.3, BORDER),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS",(0, 0), (-1, -1), [white, ROW_ALT]),
