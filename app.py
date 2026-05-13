@@ -28,197 +28,462 @@ st.set_page_config(
 # ── GLOBAL CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── CSS VARIABLES ── */
+:root {
+    --bg-base:       #0d0d12;
+    --bg-surface:    #13131a;
+    --bg-elevated:   #18181f;
+    --bg-overlay:    #1e1e28;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-muted:  rgba(255,255,255,0.1);
+    --border-accent: rgba(139,92,246,0.35);
+    --text-primary:  #f0f0f5;
+    --text-secondary:#94a3b8;
+    --text-muted:    #475569;
+    --accent-purple: #8b5cf6;
+    --accent-blue:   #3b82f6;
+    --accent-green:  #10b981;
+    --accent-amber:  #f59e0b;
+    --accent-red:    #ef4444;
+    --accent-pink:   #ec4899;
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  18px;
+    --radius-xl:  24px;
+}
 
 /* ── RESET & BASE ── */
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-    background-color: #0a0a0f !important;
-    color: #e2e8f0;
+    font-family: 'Instrument Sans', sans-serif;
+    background-color: var(--bg-base) !important;
+    color: var(--text-primary);
 }
-.stApp { background: #0a0a0f; }
-section[data-testid="stSidebar"] { background: #0f0f1a !important; border-right: 1px solid rgba(255,255,255,0.06) !important; }
-section[data-testid="stSidebar"] * { color: #cbd5e1 !important; }
-section[data-testid="stSidebar"] .stTextInput input,
-section[data-testid="stSidebar"] .stSelectbox select { background: #1a1a2e !important; border-color: rgba(255,255,255,0.1) !important; color: #e2e8f0 !important; }
+.stApp { background: var(--bg-base); }
+* { box-sizing: border-box; }
+
+/* ── SIDEBAR ── */
+section[data-testid="stSidebar"] {
+    background: #0a0a0f !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    width: 240px !important;
+}
+section[data-testid="stSidebar"] * { color: var(--text-secondary) !important; }
+section[data-testid="stSidebar"] .stTextInput input {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-muted) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.8rem !important;
+    padding: 0.6rem 0.9rem !important;
+}
+section[data-testid="stSidebar"] .stSelectbox > div > div {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-muted) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── SIDEBAR BRANDING ── */
+.sb-brand { padding: 0.25rem 0 1.25rem; }
+.sb-logo-row {
+    display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.3rem;
+}
+.sb-logo-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(124,58,237,0.4);
+}
+.sb-brand h2 {
+    font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700;
+    color: var(--text-primary) !important; margin: 0; letter-spacing: -0.3px;
+}
+.sb-brand p { font-size: 0.7rem; color: var(--text-muted) !important; margin: 0; letter-spacing: 0.5px; text-transform: uppercase; }
+.sb-divider { border: none; border-top: 1px solid var(--border-subtle); margin: 0.85rem 0; }
+.sb-label {
+    font-size: 0.62rem !important; font-weight: 700 !important;
+    text-transform: uppercase !important; letter-spacing: 2px !important;
+    color: var(--text-muted) !important; margin-bottom: 0.45rem !important;
+    display: block !important;
+}
+.sb-nav-item {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.55rem 0.75rem; border-radius: var(--radius-sm);
+    font-size: 0.88rem; font-weight: 500; color: var(--text-secondary) !important;
+    margin-bottom: 0.15rem; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.sb-nav-item:hover { background: var(--bg-elevated); color: var(--text-primary) !important; }
+.sb-nav-item.active {
+    background: rgba(139,92,246,0.15);
+    color: #c4b5fd !important;
+    border: 1px solid rgba(139,92,246,0.25);
+}
+.sb-nav-icon { font-size: 0.95rem; opacity: 0.85; }
 
 /* ── HERO ── */
 .dm-hero {
     position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #0d1b3e 100%);
-    border-radius: 24px; padding: 4rem 3rem 3.5rem;
-    text-align: center; margin-bottom: 2.5rem;
-    border: 1px solid rgba(139,92,246,0.2);
-    box-shadow: 0 0 80px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+    background: linear-gradient(160deg, #0e0b20 0%, #130d2e 35%, #0b1530 70%, #0d0d14 100%);
+    border-radius: var(--radius-xl); padding: 3.5rem 3rem 3rem;
+    text-align: center; margin-bottom: 2rem;
+    border: 1px solid rgba(139,92,246,0.18);
+    box-shadow: 0 0 100px rgba(99,59,220,0.07), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .dm-hero::before {
-    content: ''; position: absolute; top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(ellipse at 60% 20%, rgba(139,92,246,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 20% 80%, rgba(59,130,246,0.08) 0%, transparent 50%);
+    content: ''; position: absolute; top: -40%; left: 30%;
+    width: 60%; height: 200%;
+    background: radial-gradient(ellipse at center, rgba(99,59,220,0.14) 0%, transparent 65%);
+    pointer-events: none; transform: rotate(-15deg);
+}
+.dm-hero::after {
+    content: ''; position: absolute; bottom: -20%; left: -10%;
+    width: 40%; height: 150%;
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.07) 0%, transparent 60%);
     pointer-events: none;
 }
 .dm-hero-eyebrow {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3);
-    color: #a78bfa; font-size: 0.7rem; font-weight: 600; letter-spacing: 3px;
-    text-transform: uppercase; padding: 0.4rem 1.2rem;
-    border-radius: 999px; margin-bottom: 1.5rem;
+    background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25);
+    color: #a78bfa; font-size: 0.65rem; font-weight: 600; letter-spacing: 3.5px;
+    text-transform: uppercase; padding: 0.35rem 1rem;
+    border-radius: 999px; margin-bottom: 1.25rem;
 }
 .dm-hero h1 {
-    font-family: 'DM Serif Display', serif; font-size: 3.5rem;
-    color: #f8fafc; margin: 0 0 1rem; line-height: 1.1; letter-spacing: -1px;
+    font-family: 'Syne', sans-serif; font-size: 3.8rem; font-weight: 800;
+    color: var(--text-primary); margin: 0 0 0.85rem; line-height: 1.05; letter-spacing: -2px;
 }
-.dm-hero h1 em { font-style: italic; color: #a78bfa; }
-.dm-hero p { color: rgba(255,255,255,0.5); font-size: 1.05rem; margin: 0 auto 2rem; max-width: 520px; line-height: 1.7; }
-.dm-hero-features { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+.dm-hero h1 em { font-style: normal; color: #a78bfa; }
+.dm-hero p {
+    color: rgba(255,255,255,0.42); font-size: 1rem; margin: 0 auto 2rem;
+    max-width: 500px; line-height: 1.75; font-weight: 400;
+}
+.dm-hero-features { display: flex; justify-content: center; gap: 0.65rem; flex-wrap: wrap; }
 .dm-hero-feature {
-    display: flex; align-items: center; gap: 0.5rem;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.6); font-size: 0.8rem; font-weight: 500;
-    padding: 0.45rem 1rem; border-radius: 10px;
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.5); font-size: 0.77rem; font-weight: 500;
+    padding: 0.4rem 0.9rem; border-radius: var(--radius-sm);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.dm-hero-feature:hover {
+    background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25);
+    color: #c4b5fd;
 }
 
-/* ── KPI CARDS ── */
-.kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+/* ── KPI STRIP ── */
+.kpi-strip {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 0.85rem; margin-bottom: 1.75rem;
+}
 .kpi-card {
-    background: #111118; border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px; padding: 1.4rem 1.2rem; text-align: center;
-    position: relative; overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); padding: 1.3rem 1rem;
+    text-align: center; position: relative; overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.kpi-card:hover { transform: translateY(-4px); border-color: rgba(139,92,246,0.4); box-shadow: 0 12px 32px rgba(139,92,246,0.1); }
-.kpi-card::after {
-    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, #8b5cf6, #3b82f6); opacity: 0.6;
+.kpi-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(139,92,246,0.3);
+    box-shadow: 0 8px 28px rgba(99,59,220,0.12);
 }
-.kpi-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.kpi-value { font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: #f8fafc; line-height: 1; margin-bottom: 0.3rem; }
-.kpi-label { font-size: 0.68rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent);
+}
+.kpi-icon { font-size: 1.35rem; margin-bottom: 0.55rem; display: block; }
+.kpi-value {
+    font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
+    color: var(--text-primary); line-height: 1; margin-bottom: 0.3rem; display: block;
+}
+.kpi-label {
+    font-size: 0.62rem; color: var(--text-muted);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+}
 
 /* ── HEALTH SCORE ── */
 .health-panel {
-    display: flex; align-items: center; gap: 2rem;
-    border-radius: 18px; padding: 1.75rem 2.25rem; margin-bottom: 2rem;
+    display: flex; align-items: center; gap: 1.75rem;
+    border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.75rem;
     border: 1px solid; position: relative; overflow: hidden;
 }
-.health-excellent { background: linear-gradient(135deg, #052e16, #0a3622); border-color: #16a34a; }
-.health-good      { background: linear-gradient(135deg, #0c1a3a, #0f2550); border-color: #3b82f6; }
-.health-fair      { background: linear-gradient(135deg, #2d1a00, #3d2400); border-color: #f59e0b; }
-.health-poor      { background: linear-gradient(135deg, #2d0a0a, #3d1010); border-color: #ef4444; }
+.health-excellent { background: linear-gradient(135deg, rgba(5,46,22,0.8), rgba(10,54,34,0.8)); border-color: rgba(22,163,74,0.5); }
+.health-good      { background: linear-gradient(135deg, rgba(12,26,58,0.8), rgba(15,37,80,0.8)); border-color: rgba(59,130,246,0.5); }
+.health-fair      { background: linear-gradient(135deg, rgba(45,26,0,0.8), rgba(61,36,0,0.8));   border-color: rgba(245,158,11,0.5); }
+.health-poor      { background: linear-gradient(135deg, rgba(45,10,10,0.8), rgba(61,16,16,0.8)); border-color: rgba(239,68,68,0.5); }
 .health-ring {
-    flex-shrink: 0; width: 80px; height: 80px; border-radius: 50%;
+    flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700;
-    border: 3px solid currentColor;
+    font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800;
+    border: 2.5px solid currentColor;
 }
-.health-excellent .health-ring { color: #4ade80; }
-.health-good      .health-ring { color: #60a5fa; }
-.health-fair      .health-ring { color: #fbbf24; }
-.health-poor      .health-ring { color: #f87171; }
-.health-content h3 { margin: 0 0 0.3rem; font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
-.health-content p  { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.55); line-height: 1.6; }
+.health-excellent .health-ring { color: #4ade80; box-shadow: 0 0 20px rgba(74,222,128,0.2); }
+.health-good      .health-ring { color: #60a5fa; box-shadow: 0 0 20px rgba(96,165,250,0.2); }
+.health-fair      .health-ring { color: #fbbf24; box-shadow: 0 0 20px rgba(251,191,36,0.2); }
+.health-poor      .health-ring { color: #f87171; box-shadow: 0 0 20px rgba(248,113,113,0.2); }
+.health-content h3 { margin: 0 0 0.25rem; font-size: 1rem; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--text-primary); }
+.health-content p  { margin: 0; font-size: 0.87rem; color: rgba(255,255,255,0.5); line-height: 1.65; }
 
 /* ── SECTION HEADERS ── */
 .dm-section {
-    display: flex; align-items: center; gap: 0.75rem;
-    margin: 2.5rem 0 1.25rem; padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; gap: 0.7rem;
+    margin: 2.25rem 0 1.1rem; padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--border-subtle);
 }
-.dm-section-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: linear-gradient(135deg, #8b5cf6, #3b82f6); flex-shrink: 0;
+.dm-section-bar {
+    width: 3px; height: 20px; border-radius: 2px;
+    background: linear-gradient(180deg, #8b5cf6, #3b82f6); flex-shrink: 0;
 }
-.dm-section h2 { margin: 0; font-size: 1.2rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.3px; }
-.dm-section span { font-size: 0.8rem; color: #475569; font-weight: 400; margin-left: 0.25rem; }
+.dm-section h2 {
+    margin: 0; font-size: 1.05rem; font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    color: var(--text-primary); letter-spacing: -0.2px;
+}
+.dm-section span { font-size: 0.77rem; color: var(--text-muted); font-weight: 400; margin-left: 0.2rem; }
 
 /* ── CONTENT CARDS ── */
 .dm-card {
-    background: #111118; border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
-    line-height: 1.8; color: #cbd5e1; font-size: 0.93rem;
-    transition: border-color 0.2s;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 1.1rem 1.4rem; margin-bottom: 0.65rem;
+    line-height: 1.8; color: var(--text-secondary); font-size: 0.91rem;
+    transition: border-color 0.2s ease;
 }
-.dm-card:hover { border-color: rgba(255,255,255,0.12); }
-.dm-card-finding { border-left: 3px solid #8b5cf6; background: linear-gradient(to right, #1a1030, #111118); }
-.dm-card-anomaly { border-left: 3px solid #f59e0b; background: linear-gradient(to right, #1e1500, #111118); }
-.dm-card-reco    { border-left: 3px solid #10b981; background: linear-gradient(to right, #001a12, #111118); }
-.dm-card-summary { border-left: 3px solid #3b82f6; background: linear-gradient(to right, #050f2a, #111118); }
+.dm-card:hover { border-color: var(--border-muted); }
+.dm-card-finding {
+    border-left: 2px solid var(--accent-purple);
+    background: linear-gradient(to right, rgba(139,92,246,0.05), var(--bg-surface));
+}
+.dm-card-anomaly {
+    border-left: 2px solid var(--accent-amber);
+    background: linear-gradient(to right, rgba(245,158,11,0.05), var(--bg-surface));
+}
+.dm-card-reco {
+    border-left: 2px solid var(--accent-green);
+    background: linear-gradient(to right, rgba(16,185,129,0.05), var(--bg-surface));
+}
+.dm-card-summary {
+    border-left: 2px solid var(--accent-blue);
+    background: linear-gradient(to right, rgba(59,130,246,0.05), var(--bg-surface));
+}
+
+/* ── ANOMALY CARD (Stitch-style) ── */
+.anomaly-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 0.85rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+.anomaly-card:hover {
+    border-color: rgba(245,158,11,0.3);
+    box-shadow: 0 4px 20px rgba(245,158,11,0.06);
+}
+.anomaly-card-high   { border-top: 2px solid var(--accent-red); }
+.anomaly-card-medium { border-top: 2px solid var(--accent-amber); }
+.anomaly-card-low    { border-top: 2px solid var(--accent-green); }
+.anomaly-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.anomaly-title {
+    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+    color: var(--text-primary); margin: 0 0 0.35rem; display: block;
+}
+.anomaly-body {
+    font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; display: block;
+}
+.anomaly-time { font-size: 0.72rem; color: var(--text-muted); }
+.anomaly-action {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-muted);
+    margin-top: 0.75rem; cursor: pointer;
+    transition: color 0.15s;
+}
+.anomaly-action:hover { color: var(--accent-amber); }
 
 /* ── NUMBERED BADGES ── */
 .num-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px; border-radius: 8px; font-size: 0.72rem; font-weight: 700;
+    width: 24px; height: 24px; border-radius: 7px;
+    font-size: 0.7rem; font-weight: 700; font-family: 'Syne', sans-serif;
     margin-right: 0.6rem; vertical-align: middle; flex-shrink: 0;
 }
-.num-badge-purple { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
-.num-badge-green  { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.num-badge-purple { background: rgba(139,92,246,0.18); color: #a78bfa; border: 1px solid rgba(139,92,246,0.28); }
+.num-badge-green  { background: rgba(16,185,129,0.15);  color: #34d399; border: 1px solid rgba(16,185,129,0.28); }
 
 /* ── SEVERITY BADGES ── */
 .sev-badge {
-    display: inline-block; font-size: 0.65rem; font-weight: 700;
-    padding: 0.15rem 0.55rem; border-radius: 6px;
-    text-transform: uppercase; letter-spacing: 0.8px; margin-left: 0.5rem; vertical-align: middle;
+    display: inline-block; font-size: 0.6rem; font-weight: 700;
+    padding: 0.18rem 0.6rem; border-radius: 5px;
+    text-transform: uppercase; letter-spacing: 1px; vertical-align: middle;
 }
 .sev-high   { background: rgba(239,68,68,0.15);   color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 .sev-medium { background: rgba(245,158,11,0.15);  color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
 .sev-low    { background: rgba(16,185,129,0.15);  color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.crit-badge { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.28); font-size: 0.6rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 5px; letter-spacing: 0.8px; text-transform: uppercase; }
+.attn-badge { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.28); font-size: 0.6rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 5px; letter-spacing: 0.8px; text-transform: uppercase; }
 
 /* ── FINDING TITLE ── */
-.finding-title { font-weight: 700; color: #e2e8f0; font-size: 0.98rem; display: block; margin-bottom: 0.3rem; }
-.finding-body  { color: #94a3b8; font-size: 0.9rem; line-height: 1.75; }
+.finding-title { font-weight: 700; font-family: 'Syne', sans-serif; color: var(--text-primary); font-size: 0.95rem; display: block; margin-bottom: 0.25rem; }
+.finding-body  { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.75; }
 
 /* ── CHAT ── */
-.chat-wrap { background: #0c0c14; border: 1px solid rgba(255,255,255,0.06); border-radius: 18px; padding: 1.5rem; margin-bottom: 1rem; max-height: 500px; overflow-y: auto; }
+.chat-wrap {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl); padding: 1.5rem;
+    margin-bottom: 1rem; max-height: 480px; overflow-y: auto;
+}
+.chat-wrap::-webkit-scrollbar { width: 4px; }
+.chat-wrap::-webkit-scrollbar-track { background: transparent; }
+.chat-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 .chat-user { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
-.chat-user .bubble { background: linear-gradient(135deg, #6d28d9, #4c1d95); color: white; padding: 0.8rem 1.2rem; border-radius: 18px 18px 4px 18px; max-width: 72%; font-size: 0.9rem; line-height: 1.5; box-shadow: 0 4px 12px rgba(109,40,217,0.3); }
-.chat-ai { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
-.chat-avatar { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; color: white; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-.chat-ai .bubble { background: #161622; border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1; padding: 0.8rem 1.2rem; border-radius: 4px 18px 18px 18px; max-width: 78%; font-size: 0.9rem; line-height: 1.7; }
-.chat-pill { display: inline-block; background: #151520; border: 1px solid rgba(139,92,246,0.25); color: #a78bfa; font-size: 0.78rem; padding: 0.35rem 0.9rem; border-radius: 999px; margin: 0.2rem; cursor: pointer; transition: all 0.15s; }
-.chat-pill:hover { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.5); }
+.chat-user .bubble {
+    background: linear-gradient(135deg, #5b21b6, #3730a3);
+    color: #e9d5ff; padding: 0.75rem 1.1rem;
+    border-radius: 18px 18px 4px 18px; max-width: 70%;
+    font-size: 0.88rem; line-height: 1.6;
+    box-shadow: 0 4px 16px rgba(91,33,182,0.35);
+}
+.chat-ai { display: flex; gap: 0.65rem; margin-bottom: 1rem; align-items: flex-start; }
+.chat-avatar {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; color: white; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    box-shadow: 0 3px 10px rgba(124,58,237,0.35);
+}
+.chat-ai .bubble {
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    color: var(--text-secondary); padding: 0.75rem 1.1rem;
+    border-radius: 4px 18px 18px 18px; max-width: 80%;
+    font-size: 0.88rem; line-height: 1.75;
+}
+.chat-pill {
+    display: inline-block; background: var(--bg-elevated);
+    border: 1px solid rgba(139,92,246,0.22);
+    color: #a78bfa; font-size: 0.76rem; padding: 0.3rem 0.85rem;
+    border-radius: 999px; margin: 0.2rem; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.chat-pill:hover { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.45); color: #c4b5fd; }
 
 /* ── FORECAST BADGE ── */
-.fc-badge { display: inline-block; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: #a78bfa; font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 0.5rem; }
+.fc-badge {
+    display: inline-block;
+    background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.22);
+    color: #a78bfa; font-size: 0.62rem; font-weight: 700;
+    padding: 0.18rem 0.65rem; border-radius: 5px;
+    text-transform: uppercase; letter-spacing: 0.8px; margin-left: 0.5rem;
+}
 
 /* ── BUTTONS ── */
 .stButton > button {
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
-    color: white !important; border: none !important; border-radius: 12px !important;
-    padding: 0.9rem 2rem !important; font-weight: 700 !important; font-size: 0.95rem !important;
-    width: 100% !important; transition: all 0.2s !important;
-    box-shadow: 0 4px 20px rgba(124,58,237,0.35) !important; letter-spacing: 0.3px !important;
+    background: linear-gradient(135deg, #7c3aed 0%, #4338ca 100%) !important;
+    color: white !important; border: none !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.85rem 2rem !important; font-weight: 700 !important;
+    font-family: 'Syne', sans-serif !important;
+    font-size: 0.92rem !important; width: 100% !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 18px rgba(124,58,237,0.3) !important;
+    letter-spacing: 0.2px !important;
 }
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 28px rgba(124,58,237,0.45) !important; }
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 26px rgba(124,58,237,0.42) !important;
+}
 .dl-btn .stDownloadButton > button {
     background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-    box-shadow: 0 4px 20px rgba(5,150,105,0.3) !important;
+    box-shadow: 0 4px 18px rgba(5,150,105,0.28) !important;
 }
-.dl-btn .stDownloadButton > button:hover { box-shadow: 0 8px 28px rgba(5,150,105,0.45) !important; }
+.dl-btn .stDownloadButton > button:hover {
+    box-shadow: 0 8px 26px rgba(5,150,105,0.42) !important;
+}
 
 /* ── TABS ── */
-.stTabs [data-baseweb="tab-list"] { background: #0e0e18 !important; border-radius: 14px !important; padding: 4px !important; gap: 2px !important; border: 1px solid rgba(255,255,255,0.06) !important; }
-.stTabs [data-baseweb="tab"] { border-radius: 10px !important; color: #64748b !important; font-weight: 600 !important; font-size: 0.85rem !important; padding: 0.55rem 1.1rem !important; }
-.stTabs [aria-selected="true"] { background: linear-gradient(135deg, #7c3aed, #4f46e5) !important; color: white !important; box-shadow: 0 4px 12px rgba(124,58,237,0.3) !important; }
+.stTabs [data-baseweb="tab-list"] {
+    background: var(--bg-surface) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 4px !important; gap: 2px !important;
+    border: 1px solid var(--border-subtle) !important;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px !important; color: var(--text-muted) !important;
+    font-weight: 600 !important; font-size: 0.82rem !important;
+    padding: 0.5rem 1rem !important;
+    font-family: 'Instrument Sans', sans-serif !important;
+}
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #7c3aed, #4338ca) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(124,58,237,0.3) !important;
+}
 .stTabs [data-baseweb="tab-panel"] { padding: 1.5rem 0 0 !important; }
 
 /* ── EXPANDERS ── */
-div[data-testid="stExpander"] { background: #0f0f1a !important; border: 1px solid rgba(255,255,255,0.07) !important; border-radius: 14px !important; margin-bottom: 0.5rem !important; }
-div[data-testid="stExpander"] summary { color: #e2e8f0 !important; font-weight: 600 !important; }
+div[data-testid="stExpander"] {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    margin-bottom: 0.5rem !important;
+}
+div[data-testid="stExpander"] summary { color: var(--text-primary) !important; font-weight: 600 !important; }
 
 /* ── INPUTS ── */
-.stTextInput input, .stSelectbox > div > div, .stFileUploader { background: #0f0f1a !important; border-color: rgba(255,255,255,0.1) !important; color: #e2e8f0 !important; border-radius: 10px !important; }
-.stTextInput label, .stSelectbox label, .stFileUploader label { color: #94a3b8 !important; font-size: 0.82rem !important; font-weight: 600 !important; }
+.stTextInput input {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-muted) !important;
+    color: var(--text-primary) !important;
+    border-radius: var(--radius-sm) !important;
+}
+.stSelectbox > div > div {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-muted) !important;
+    color: var(--text-primary) !important;
+    border-radius: var(--radius-sm) !important;
+}
+.stFileUploader {
+    background: var(--bg-elevated) !important;
+    border: 1px dashed rgba(139,92,246,0.3) !important;
+    border-radius: var(--radius-md) !important;
+}
+.stTextInput label, .stSelectbox label, .stFileUploader label {
+    color: var(--text-muted) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
 
 /* ── DATAFRAME ── */
-.stDataFrame { background: #0f0f1a !important; border-radius: 14px !important; border: 1px solid rgba(255,255,255,0.07) !important; }
+.stDataFrame {
+    background: var(--bg-surface) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-subtle) !important;
+}
+.stDataFrame thead th {
+    background: rgba(139,92,246,0.12) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Syne', sans-serif !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.5px !important;
+}
 
 /* ── ALERTS ── */
-.stAlert { background: #0f0f1a !important; border-radius: 12px !important; border-left-width: 3px !important; }
-.stSuccess { border-left-color: #10b981 !important; }
-.stInfo    { border-left-color: #3b82f6 !important; }
-.stWarning { border-left-color: #f59e0b !important; }
-.stError   { border-left-color: #ef4444 !important; }
+.stAlert { background: var(--bg-surface) !important; border-radius: var(--radius-md) !important; border-left-width: 2px !important; }
+.stSuccess { border-left-color: var(--accent-green) !important; }
+.stInfo    { border-left-color: var(--accent-blue) !important; }
+.stWarning { border-left-color: var(--accent-amber) !important; }
+.stError   { border-left-color: var(--accent-red) !important; }
 
 /* ── PROGRESS ── */
 .stProgress > div > div { background: linear-gradient(90deg, #7c3aed, #3b82f6) !important; border-radius: 999px !important; }
@@ -226,31 +491,70 @@ div[data-testid="stExpander"] summary { color: #e2e8f0 !important; font-weight: 
 /* ── FOOTER ── */
 .dm-footer {
     text-align: center; margin-top: 4rem; padding: 2rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    color: #334155; font-size: 0.78rem;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-muted); font-size: 0.76rem; letter-spacing: 0.3px;
 }
 .dm-footer strong { color: #475569; }
+.dm-footer a { color: #475569; text-decoration: none; }
+.dm-footer a:hover { color: var(--text-secondary); }
 
-/* ── SIDEBAR BRANDING ── */
-.sb-brand { padding: 0.5rem 0 1.5rem; }
-.sb-brand h2 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: #f1f5f9 !important; margin: 0; letter-spacing: -0.5px; }
-.sb-brand p { font-size: 0.75rem; color: #475569 !important; margin: 0.2rem 0 0; }
-.sb-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 1rem 0; }
-.sb-label { font-size: 0.68rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; color: #475569 !important; margin-bottom: 0.5rem !important; display: block; }
-
-/* ── UPLOAD AREA ── */
+/* ── UPLOAD ZONE ── */
 .upload-zone {
-    background: linear-gradient(135deg, #0a0a18, #0f0f20);
-    border: 2px dashed rgba(139,92,246,0.3);
-    border-radius: 20px; padding: 4rem 2rem; text-align: center; margin-top: 1rem;
-    transition: border-color 0.2s;
+    background: linear-gradient(135deg, rgba(10,10,24,0.9), rgba(15,15,32,0.9));
+    border: 2px dashed rgba(139,92,246,0.28);
+    border-radius: var(--radius-xl); padding: 4rem 2rem;
+    text-align: center; margin-top: 1rem;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
-.upload-zone:hover { border-color: rgba(139,92,246,0.6); }
-.upload-zone h3 { color: #a78bfa; font-family: 'DM Serif Display', serif; font-size: 1.5rem; margin: 0.5rem 0 0.25rem; }
-.upload-zone p { color: #475569; font-size: 0.88rem; margin: 0; }
+.upload-zone:hover {
+    border-color: rgba(139,92,246,0.55);
+    background: linear-gradient(135deg, rgba(15,10,32,0.9), rgba(15,15,32,0.9));
+}
+.upload-zone h3 {
+    color: #c4b5fd; font-family: 'Syne', sans-serif;
+    font-size: 1.4rem; font-weight: 700; margin: 0.6rem 0 0.25rem;
+}
+.upload-zone p { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 
-/* ── STAT TABLE STYLING ── */
-.stDataFrame thead th { background: rgba(139,92,246,0.2) !important; color: #e2e8f0 !important; }
+/* ── OUTLIER TABLE ── */
+.outlier-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+.outlier-table th {
+    background: rgba(139,92,246,0.1); color: var(--text-secondary);
+    padding: 0.7rem 1rem; text-align: left;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.outlier-table td {
+    padding: 0.8rem 1rem; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.outlier-table tr:last-child td { border-bottom: none; }
+.outlier-table td:first-child { color: var(--accent-purple); font-weight: 600; }
+.outlier-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── CORR TABLE ── */
+.corr-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+.corr-table th {
+    background: rgba(59,130,246,0.08); color: var(--text-secondary);
+    padding: 0.65rem 1rem; text-align: left;
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.corr-table td { padding: 0.75rem 1rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle); }
+.corr-table tr:last-child td { border-bottom: none; }
+.corr-table td:first-child { color: var(--accent-blue); font-weight: 600; }
+.corr-table tr:hover td { background: rgba(255,255,255,0.02); }
+.r-strong-pos { color: #4ade80 !important; font-weight: 700; }
+.r-strong-neg { color: #f87171 !important; font-weight: 700; }
+.r-moderate   { color: #fbbf24 !important; font-weight: 600; }
+.strength-badge {
+    display: inline-block; font-size: 0.62rem; font-weight: 700;
+    padding: 0.15rem 0.55rem; border-radius: 5px;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+.strength-strong-pos { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+.strength-strong-neg { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+.strength-moderate   { background: rgba(251,191,36,0.12);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -615,7 +919,10 @@ def build_forecast_chart(df):
 with st.sidebar:
     st.markdown("""
     <div class="sb-brand">
-        <h2>◈ DataMind</h2>
+        <div class="sb-logo-row">
+            <div class="sb-logo-icon">◈</div>
+            <h2>DataMind</h2>
+        </div>
         <p>AI Business Intelligence Platform</p>
     </div>
     <hr class="sb-divider">
@@ -715,7 +1022,7 @@ missing_pct  = round(df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100
 # ── DATASET OVERVIEW ─────────────────────────────────────────────────────────
 st.markdown("""
 <div class="dm-section">
-    <div class="dm-section-dot"></div>
+    <div class="dm-section-bar"></div>
     <h2>Dataset Overview</h2>
     <span>— snapshot of your uploaded file</span>
 </div>
@@ -913,12 +1220,12 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # ── TAB 1: SUMMARY & FINDINGS ─────────────────────────────────────────────────
 with tab1:
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Executive Summary</h2></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Executive Summary</h2></div>""", unsafe_allow_html=True)
     for para in exec_summary.split("\n"):
         if para.strip():
             st.markdown(f'<div class="dm-card dm-card-summary">{para.strip()}</div>', unsafe_allow_html=True)
 
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Key Findings</h2><span>— 5 data-driven insights</span></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Key Findings</h2><span>— 5 data-driven insights</span></div>""", unsafe_allow_html=True)
     lines = [l.strip() for l in key_findings.split("\n") if l.strip() and len(l.strip()) > 5]
     for i, line in enumerate(lines):
         is_num = len(line) > 1 and line[0].isdigit()
@@ -937,23 +1244,43 @@ with tab1:
         else:
             st.markdown(f'<div class="dm-card">{line}</div>', unsafe_allow_html=True)
 
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Statistical Summary</h2></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Statistical Summary</h2></div>""", unsafe_allow_html=True)
     if numeric_cols:
         st.dataframe(df[numeric_cols].describe().round(2), use_container_width=True)
 
     # Correlation table
     corrs = (st.session_state.stats_summary or {}).get("strong_correlations", [])
     if corrs:
-        st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Strong Correlations</h2></div>""", unsafe_allow_html=True)
-        corr_df = pd.DataFrame([{
-            "Column A": c["col1"], "Column B": c["col2"],
-            "Pearson r": c["r"], "Strength": c["strength"]
-        } for c in corrs])
-        st.dataframe(corr_df, use_container_width=True)
+        st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Strong Correlations</h2></div>""", unsafe_allow_html=True)
+        rows_html = ""
+        for c in corrs:
+            r_val = c["r"]
+            if c["strength"] == "Strong" and r_val > 0:
+                r_class, s_class, s_label = "r-strong-pos", "strength-strong-pos", "STRONG POSITIVE"
+            elif c["strength"] == "Strong" and r_val < 0:
+                r_class, s_class, s_label = "r-strong-neg", "strength-strong-neg", "INVERSE STRONG"
+            else:
+                r_class, s_class, s_label = "r-moderate", "strength-moderate", "MODERATE"
+            conf = round(min(99.9, abs(r_val) * 105), 1)
+            rows_html += f"""<tr>
+                <td>{c['col1']} &amp; {c['col2']}</td>
+                <td class="{r_class}">{r_val}</td>
+                <td><span class="strength-badge {s_class}">{s_label}</span></td>
+                <td>{conf}%</td>
+            </tr>"""
+        st.markdown(f"""
+        <div class="dm-card" style="padding:0;overflow:hidden;">
+        <table class="corr-table">
+            <thead><tr>
+                <th>Variable Pair (A &amp; B)</th>
+                <th>Pearson R</th><th>Strength</th><th>Confidence</th>
+            </tr></thead>
+            <tbody>{rows_html}</tbody>
+        </table></div>""", unsafe_allow_html=True)
 
 # ── TAB 2: VISUALISATIONS ─────────────────────────────────────────────────────
 with tab2:
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Visualisations</h2><span>— auto-generated from your data</span></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Visualisations</h2><span>— auto-generated from your data</span></div>""", unsafe_allow_html=True)
     if charts:
         for i in range(0, len(charts), 2):
             if i + 1 < len(charts):
@@ -969,7 +1296,7 @@ with tab2:
 
 # ── TAB 3: FORECAST ───────────────────────────────────────────────────────────
 with tab3:
-    st.markdown(f"""<div class="dm-section"><div class="dm-section-dot"></div><h2>Trend Forecast</h2><span class="fc-badge">Linear Regression</span></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="dm-section"><div class="dm-section-bar"></div><h2>Trend Forecast</h2><span class="fc-badge">Linear Regression</span></div>""", unsafe_allow_html=True)
     if forecast_fig:
         st.plotly_chart(forecast_fig, use_container_width=True)
         st.markdown("""
@@ -982,45 +1309,73 @@ with tab3:
 
 # ── TAB 4: ANOMALIES ──────────────────────────────────────────────────────────
 with tab4:
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Anomalies & Data Quality</h2></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Anomalies & Data Quality</h2></div>""", unsafe_allow_html=True)
     lines = [a.strip() for a in anomaly_narrative.split("\n") if a.strip()]
-    for line in lines:
+    for idx, line in enumerate(lines):
         if any(w in line.lower() for w in ["extreme", "critical", "significant", "major"]):
-            sev, label = "sev-high", "High"
+            sev_class, badge_class, badge_label = "anomaly-card-high", "crit-badge", "CRITICAL: HIGH"
         elif any(w in line.lower() for w in ["moderate", "warning", "missing", "outlier", "duplicate", "skew"]):
-            sev, label = "sev-medium", "Medium"
+            sev_class, badge_class, badge_label = "anomaly-card-medium", "attn-badge", "ATTENTION: MEDIUM"
         else:
-            sev, label = "sev-low", "Low"
-        st.markdown(f'<div class="dm-card dm-card-anomaly">{line} <span class="sev-badge {sev}">{label}</span></div>', unsafe_allow_html=True)
+            sev_class, badge_class, badge_label = "anomaly-card-low", "sev-low", "INFO: LOW"
+
+        if "." in line[:60]:
+            title_part = line.split(".")[0].strip()
+            body_part  = line[len(title_part)+1:].strip()
+        elif ":" in line[:60]:
+            title_part = line.split(":")[0].strip()
+            body_part  = line[len(title_part)+1:].strip()
+        else:
+            title_part = f"Anomaly #{idx+1}"
+            body_part  = line
+
+        st.markdown(f"""
+        <div class="anomaly-card {sev_class}">
+            <div class="anomaly-meta">
+                <span class="{badge_class}">{badge_label}</span>
+                <span class="anomaly-time">{idx+1} of {len(lines)}</span>
+            </div>
+            <span class="anomaly-title">{title_part}</span>
+            <span class="anomaly-body">{body_part if body_part else line}</span>
+            <div class="anomaly-action">Investigate &nbsp;→</div>
+        </div>""", unsafe_allow_html=True)
 
     outliers = anomalies.get("outliers", {})
     if outliers:
-        st.markdown("""<div class="dm-section" style="margin-top:1.5rem;"><div class="dm-section-dot"></div><h2>Outlier Detail</h2></div>""", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame([{
-            "Column": col, "Outlier Count": v["count"], "Outlier %": f"{v['pct']}%",
-            "Lower Bound": v["lower_bound"], "Upper Bound": v["upper_bound"],
-            "Data Min": v["extreme_min"], "Data Max": v["extreme_max"],
-        } for col, v in outliers.items()]), use_container_width=True)
+        st.markdown("""<div class="dm-section" style="margin-top:1.5rem;"><div class="dm-section-bar"></div><h2>Outlier Detail Matrix</h2></div>""", unsafe_allow_html=True)
+        rows_html = "".join([f"""<tr>
+            <td>{col}</td><td>{v['count']:,}</td><td>{v['pct']}%</td>
+            <td>{v['lower_bound']:,}</td><td>{v['upper_bound']:,}</td>
+            <td>{v['extreme_min']:,}</td><td>{v['extreme_max']:,}</td>
+        </tr>""" for col, v in outliers.items()])
+        st.markdown(f"""
+        <div class="dm-card" style="padding:0;overflow:hidden;">
+        <table class="outlier-table">
+            <thead><tr>
+                <th>Metric / Column</th><th>Count</th><th>%</th>
+                <th>Lower Bound</th><th>Upper Bound</th><th>Data Min</th><th>Data Max</th>
+            </tr></thead>
+            <tbody>{rows_html}</tbody>
+        </table></div>""", unsafe_allow_html=True)
 
-    # Constant / high-missing columns
     const = anomalies.get("constant_columns", [])
     high_miss = anomalies.get("high_missing", [])
     skewed = anomalies.get("high_skewness", {})
 
     if const or high_miss or skewed:
-        st.markdown("""<div class="dm-section" style="margin-top:1.5rem;"><div class="dm-section-dot"></div><h2>Additional Flags</h2></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="dm-section" style="margin-top:1.5rem;"><div class="dm-section-bar"></div><h2>Additional Flags</h2></div>""", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown(f'<div class="dm-card"><b style="color:#f87171;">Constant Columns</b><br><span style="font-size:0.85rem;color:#94a3b8;">{", ".join(const) if const else "None"}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="dm-card"><b style="color:#f87171;">Constant Columns</b><br><span style="font-size:0.85rem;color:#94a3b8;">{", ".join(const) if const else "None detected"}</span></div>', unsafe_allow_html=True)
         with c2:
-            st.markdown(f'<div class="dm-card"><b style="color:#fbbf24;">High Missing (>20%)</b><br><span style="font-size:0.85rem;color:#94a3b8;">{", ".join(high_miss) if high_miss else "None"}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="dm-card"><b style="color:#fbbf24;">High Missing (&gt;20%)</b><br><span style="font-size:0.85rem;color:#94a3b8;">{", ".join(high_miss) if high_miss else "None detected"}</span></div>', unsafe_allow_html=True)
         with c3:
-            skew_txt = ", ".join(f"{k}: {v}" for k, v in skewed.items()) if skewed else "None"
+            skew_txt = ", ".join(f"{k}: {v}" for k, v in skewed.items()) if skewed else "None detected"
             st.markdown(f'<div class="dm-card"><b style="color:#fb923c;">High Skewness (&gt;2)</b><br><span style="font-size:0.85rem;color:#94a3b8;">{skew_txt}</span></div>', unsafe_allow_html=True)
 
 # ── TAB 5: RECOMMENDATIONS ────────────────────────────────────────────────────
 with tab5:
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Actionable Recommendations</h2><span>— AI-generated strategic actions</span></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Actionable Recommendations</h2><span>— AI-generated strategic actions</span></div>""", unsafe_allow_html=True)
     rlines = [r.strip() for r in recommendations.split("\n") if r.strip() and len(r.strip()) > 5]
     for i, reco in enumerate(rlines):
         is_num = len(reco) > 1 and reco[0].isdigit()
@@ -1039,7 +1394,7 @@ with tab5:
 
 # ── TAB 6: CHAT ───────────────────────────────────────────────────────────────
 with tab6:
-    st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Chat With Your Data</h2><span>— ask anything</span></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Chat With Your Data</h2><span>— ask anything</span></div>""", unsafe_allow_html=True)
     st.markdown("""
     <p style="font-size:0.83rem;color:#475569;margin-bottom:0.75rem;">💡 Try asking:</p>
     <div style="margin-bottom:1.25rem;display:flex;flex-wrap:wrap;gap:0.4rem;">
@@ -1098,7 +1453,7 @@ Write in plain, professional English. No markdown symbols."""
 
 # ── DOWNLOAD ──────────────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("""<div class="dm-section"><div class="dm-section-dot"></div><h2>Download Report</h2><span>— full PDF with charts, findings & recommendations</span></div>""", unsafe_allow_html=True)
+st.markdown("""<div class="dm-section"><div class="dm-section-bar"></div><h2>Download Report</h2><span>— full PDF with charts, findings & recommendations</span></div>""", unsafe_allow_html=True)
 safe_title = report_title.replace(" ", "_").replace("/", "-")
 st.markdown('<div class="dl-btn">', unsafe_allow_html=True)
 if pdf_bytes:

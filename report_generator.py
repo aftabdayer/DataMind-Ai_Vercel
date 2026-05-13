@@ -27,27 +27,32 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # ─────────────────────────────────────────────
-# PALETTE  (matches the dark-premium web UI)
+# PALETTE  (Stitch-inspired premium design)
 # ─────────────────────────────────────────────
-INK        = HexColor("#0f0c29")        # cover background
-NAVY       = HexColor("#0d1b3e")        # cover accent
+INK        = HexColor("#0d0d12")        # cover base
+INK2       = HexColor("#13131a")        # cover secondary
+NAVY       = HexColor("#0b1025")        # cover accent band
+COVER_LINE = HexColor("#2d1f6e")        # cover divider
 PURPLE     = HexColor("#7c3aed")        # primary accent
-PURPLE_MID = HexColor("#6d28d9")        # darker purple
-PURPLE_LT  = HexColor("#ede9fe")        # light purple tint
+PURPLE_MID = HexColor("#6d28d9")        # deeper purple
+PURPLE_LT  = HexColor("#f5f3ff")        # finding card bg
+PURPLE_BAR = HexColor("#8b5cf6")        # bar accent
 BLUE       = HexColor("#3b82f6")        # secondary accent
-BLUE_LT    = HexColor("#eff6ff")        # light blue tint
-GREEN      = HexColor("#059669")        # recommendation / positive
-GREEN_LT   = HexColor("#ecfdf5")        # light green tint
+BLUE_LT    = HexColor("#eff6ff")        # blue card bg
+GREEN      = HexColor("#059669")        # reco / positive
+GREEN_LT   = HexColor("#ecfdf5")        # reco card bg
 AMBER      = HexColor("#d97706")        # warning
-AMBER_LT   = HexColor("#fffbeb")        # light amber tint
+AMBER_LT   = HexColor("#fffbeb")        # anomaly card bg
 RED        = HexColor("#dc2626")        # danger
-RED_LT     = HexColor("#fef2f2")        # light red tint
-DARK       = HexColor("#1e293b")        # body text
+RED_LT     = HexColor("#fff1f2")        # danger card bg
+DARK       = HexColor("#1e293b")        # primary body text
 MID        = HexColor("#475569")        # secondary text
-LIGHT      = HexColor("#94a3b8")        # muted text
-BORDER     = HexColor("#e2e8f0")        # hairline
+LIGHT      = HexColor("#94a3b8")        # muted / captions
+BORDER     = HexColor("#e2e8f0")        # hairlines
 PAGE_BG    = HexColor("#ffffff")        # page background
 ROW_ALT    = HexColor("#f8fafc")        # alternating row
+HDR_BG     = HexColor("#1e293b")        # header background
+HDR_RULE   = HexColor("#7c3aed")        # left-edge accent rule
 
 
 # ─────────────────────────────────────────────
@@ -180,41 +185,55 @@ def _cover_tpl(doc):
 
 def _body_tpl(doc, title: str):
     W, H = A4
-    M = 20 * mm
-    FH = 12 * mm   # footer height
-    HH = 13 * mm   # header height
+    M  = 20 * mm
+    FH = 14 * mm
+    HH = 14 * mm
 
     def on_page(canvas, doc):
         canvas.saveState()
-        # ── header ──
-        canvas.setFillColor(DARK)
+        # ── header bar ──
+        canvas.setFillColor(HDR_BG)
         canvas.rect(0, H - HH, W, HH, fill=1, stroke=0)
-        # left rule line
+        canvas.setFillColor(HDR_RULE)
+        canvas.rect(0, H - HH, 3.5, HH, fill=1, stroke=0)
+        # Logo mark
         canvas.setFillColor(PURPLE)
-        canvas.rect(0, H - HH, 4, HH, fill=1, stroke=0)
-        # title
-        canvas.setFont("Helvetica-Bold", 7.5)
+        canvas.roundRect(M, H - HH + 3.5 * mm, 6 * mm, 6 * mm, 1.5 * mm, fill=1, stroke=0)
+        canvas.setFont("Helvetica-Bold", 7)
+        canvas.setFillColor(white)
+        canvas.drawCentredString(M + 3 * mm, H - HH + 5.3 * mm, "D")
+        # Title text
+        canvas.setFont("Helvetica-Bold", 7)
         canvas.setFillColor(HexColor("#94a3b8"))
-        canvas.drawString(M + 4, H - HH + 4.5 * mm, title.upper())
-        # right — date
-        canvas.setFont("Helvetica", 7.5)
-        canvas.setFillColor(HexColor("#64748b"))
-        canvas.drawRightString(W - M, H - HH + 4.5 * mm,
-                               datetime.now().strftime("%d %B %Y"))
-
-        # ── footer ──
-        canvas.setStrokeColor(BORDER)
-        canvas.setLineWidth(0.5)
-        canvas.line(M, FH + 2 * mm, W - M, FH + 2 * mm)
+        short_title = (title[:52] + "…") if len(title) > 52 else title
+        canvas.drawString(M + 8 * mm, H - HH + 5.3 * mm, short_title.upper())
+        # Right: date
         canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(HexColor("#475569"))
+        canvas.drawRightString(W - M, H - HH + 5.3 * mm,
+                               datetime.now().strftime("%d %B %Y"))
+        # ── footer ──
+        canvas.setStrokeColor(HexColor("#e2e8f0"))
+        canvas.setLineWidth(0.4)
+        canvas.line(M, FH, W - M, FH)
+        canvas.setFillColor(PURPLE)
+        canvas.circle(M + 1.5 * mm, FH - 3.5 * mm, 1.5 * mm, fill=1, stroke=0)
+        canvas.setFont("Helvetica-Bold", 6.5)
+        canvas.setFillColor(MID)
+        canvas.drawString(M + 5 * mm, FH - 5 * mm, "DataMind AI")
+        canvas.setFont("Helvetica", 6.5)
         canvas.setFillColor(LIGHT)
-        canvas.drawString(M, FH - 2 * mm, "DataMind AI · Confidential")
-        canvas.drawCentredString(W / 2, FH - 2 * mm, f"Page {doc.page}")
-        canvas.drawRightString(W - M, FH - 2 * mm, "AI-Generated Report")
+        canvas.drawString(M + 5 * mm + 38, FH - 5 * mm, "· Confidential")
+        canvas.setFont("Helvetica-Bold", 7)
+        canvas.setFillColor(MID)
+        canvas.drawCentredString(W / 2, FH - 5 * mm, f"Page {doc.page}")
+        canvas.setFont("Helvetica", 6.5)
+        canvas.setFillColor(LIGHT)
+        canvas.drawRightString(W - M, FH - 5 * mm, "AI-Generated Report")
         canvas.restoreState()
 
-    frame = Frame(M, FH + 4 * mm, W - 2 * M,
-                  H - HH - FH - 6 * mm, id="body_frame")
+    frame = Frame(M, FH + 3 * mm, W - 2 * M,
+                  H - HH - FH - 5 * mm, id="body_frame")
     return PageTemplate(id="Body", frames=[frame], onPage=on_page)
 
 
@@ -223,33 +242,67 @@ def _body_tpl(doc, title: str):
 # ─────────────────────────────────────────────
 
 def _section_header(num: str, title: str, S: dict) -> list:
+    """Section header with vertical bar accent — matches Stitch web design."""
     label = f"0{num}" if len(num) == 1 else num
+    # Bar + number + title in a single table row
+    bar_cell = Table(
+        [[""]], colWidths=[3], rowHeights=[22 * mm / 2]
+    )
+    bar_cell.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), PURPLE_BAR),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    ]))
+    num_para = Paragraph(
+        label,
+        ParagraphStyle("snum", fontName="Helvetica-Bold", fontSize=7,
+                       textColor=PURPLE, alignment=TA_CENTER, leading=9),
+    )
+    title_para = Paragraph(title, S["section_title"])
+    label_para = Paragraph(
+        f"SECTION {label}", S["section_label"]
+    )
+    avail = A4[0] - 40 * mm
+    header_row = Table(
+        [[bar_cell, [label_para, title_para]]],
+        colWidths=[4, avail - 4],
+    )
+    header_row.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "BOTTOM"),
+        ("LEFTPADDING",   (1, 0), (1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    ]))
     return [
-        Paragraph(f"{label}  ·  SECTION", S["section_label"]),
-        Paragraph(title, S["section_title"]),
-        HRFlowable(width="100%", thickness=1.5, color=PURPLE,
-                   spaceAfter=10, spaceBefore=2),
+        header_row,
+        HRFlowable(width="100%", thickness=0.5, color=BORDER,
+                   spaceAfter=10, spaceBefore=4),
     ]
 
 
 def _card(title: str, body: str, S: dict,
           bar: HexColor = PURPLE, bg: HexColor = PURPLE_LT) -> Table:
-    """Bordered card with coloured left bar, bold title, body text."""
-    content = []
+    """Card with 2px left bar accent, subtle bg, rounded feel."""
+    cell_content = []
     if title:
-        content.append(Paragraph(title, S["card_title"]))
-        content.append(Spacer(1, 1.5 * mm))
-    content.append(Paragraph(body, S["card_body"]))
+        cell_content.append(Paragraph(title, S["card_title"]))
+        cell_content.append(Spacer(1, 1.5 * mm))
+    cell_content.append(Paragraph(body, S["card_body"]))
 
-    t = Table([[content]], colWidths=["100%"])
+    avail = A4[0] - 40 * mm
+    t = Table([[cell_content]], colWidths=[avail])
     t.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), bg),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 12),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
-        ("TOPPADDING",    (0, 0), (-1, -1), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("LINEBEFORE",    (0, 0), (0, -1),  4, bar),
-        ("LINEBELOW",     (0, 0), (-1, -1), 0.3, BORDER),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LINEBEFORE",    (0, 0), (0, -1),  3, bar),
+        ("LINEBELOW",     (0, 0), (-1, -1), 0.4, BORDER),
+        ("BOX",           (0, 0), (-1, -1), 0.4, BORDER),
     ]))
     return t
 
@@ -345,55 +398,59 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
                  S: dict):
     W, H = A4
 
-    # ── Full-page dark gradient block ──
-    items_in_block = []
-    items_in_block.append(Spacer(1, 22 * mm))
-
-    # Eyebrow
-    items_in_block.append(Paragraph("◈  DATAMIND AI  ·  POWERED BY GROQ LLAMA 3.3 · 70B", S["cover_eyebrow"]))
-    items_in_block.append(Spacer(1, 8 * mm))
-
-    # Title
-    items_in_block.append(Paragraph(title, S["cover_title"]))
-    items_in_block.append(Spacer(1, 3 * mm))
-    items_in_block.append(Paragraph("AI-Generated Business Intelligence Report", S["cover_subtitle"]))
-    items_in_block.append(Spacer(1, 6 * mm))
-
-    # Divider line
-    items_in_block.append(HRFlowable(
-        width="55%", thickness=1, color=HexColor("#4c1d95"),
-        spaceAfter=6, hAlign="CENTRE",
-    ))
-
-    # Meta
-    items_in_block.append(Paragraph(
-        f"Organisation: <b>{company}</b>   ·   Analyst: <b>{analyst}</b>   ·   Tone: <b>{tone}</b>",
-        S["cover_meta"],
-    ))
-    items_in_block.append(Paragraph(
-        f"Industry: <b>{industry}</b>   ·   Generated: <b>{datetime.now().strftime('%d %B %Y, %H:%M')}</b>",
-        S["cover_meta"],
-    ))
-    items_in_block.append(Paragraph(
-        f"Source file: {filename}",
-        S["cover_meta"],
-    ))
-    items_in_block.append(Spacer(1, 10 * mm))
-
-    # Health badge on cover
+    # ── Dark hero block (full-width, two-tone) ──
     health_colours = {
         "Excellent": "#16a34a", "Good": "#2563eb",
         "Fair": "#d97706", "Poor": "#dc2626",
     }
-    hc = health_colours.get(health_grade, "#6d28d9")
-    items_in_block.append(
-        Table([[Paragraph(
-            f'<font color="{hc}">◉</font>  Data Health: <b><font color="{hc}">{health_grade}</font></b> &nbsp; ({health_score}/100)',
-            ParagraphStyle("hbadge", fontName="Helvetica-Bold", fontSize=9,
-                           textColor=HexColor("#94a3b8"), alignment=TA_CENTER),
-        )]], colWidths=[100 * mm])
-    )
+    hc = health_colours.get(health_grade, "#7c3aed")
+
+    items_in_block = []
+    items_in_block.append(Spacer(1, 28 * mm))
+
+    # Eyebrow pill
+    items_in_block.append(Paragraph(
+        "◈  &nbsp; DATAMIND AI  &nbsp; ·  &nbsp; GROQ LLAMA 3.3 · 70B",
+        S["cover_eyebrow"],
+    ))
     items_in_block.append(Spacer(1, 10 * mm))
+
+    # Main title
+    items_in_block.append(Paragraph(title, S["cover_title"]))
+    items_in_block.append(Spacer(1, 4 * mm))
+    items_in_block.append(Paragraph(
+        "AI-Generated Business Intelligence Report",
+        S["cover_subtitle"],
+    ))
+    items_in_block.append(Spacer(1, 8 * mm))
+
+    # Thin accent rule
+    items_in_block.append(HRFlowable(
+        width="45%", thickness=1.5, color=HexColor("#4c1d95"),
+        spaceAfter=8, hAlign="CENTRE",
+    ))
+
+    # Meta lines
+    items_in_block.append(Paragraph(
+        f"<b>{company}</b> &nbsp; · &nbsp; Prepared by <b>{analyst}</b> &nbsp; · &nbsp; {tone} tone",
+        S["cover_meta"],
+    ))
+    items_in_block.append(Paragraph(
+        f"Industry: <b>{industry}</b> &nbsp; · &nbsp; {datetime.now().strftime('%d %B %Y, %H:%M')}",
+        S["cover_meta"],
+    ))
+    items_in_block.append(Spacer(1, 10 * mm))
+
+    # Health score badge row
+    items_in_block.append(Table(
+        [[Paragraph(
+            f'<font color="{hc}">●</font> &nbsp; Data Health Score: &nbsp; <b><font color="{hc}">{health_grade}</font></b> &nbsp; <font color="#475569">({health_score} / 100)</font>',
+            ParagraphStyle("hbadge", fontName="Helvetica-Bold", fontSize=9.5,
+                           textColor=HexColor("#94a3b8"), alignment=TA_CENTER, leading=14),
+        )]],
+        colWidths=[110 * mm],
+    ))
+    items_in_block.append(Spacer(1, 12 * mm))
 
     cover_block = Table(
         [[item] for item in items_in_block],
@@ -409,44 +466,50 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
     ]))
     story.append(cover_block)
 
-    # ── KPI tiles ──
+    # ── Dataset KPI strip ──
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     cat_cols     = df.select_dtypes(include=["object", "category"]).columns.tolist()
     miss_pct     = round(df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100, 1)
     dup_count    = int(df.duplicated().sum())
 
-    story.append(Spacer(1, 6 * mm))
+    story.append(Spacer(1, 7 * mm))
     story.append(_kpi_row([
-        ("◻", f"{df.shape[0]:,}",     "Total Rows"),
-        ("◻", str(df.shape[1]),        "Columns"),
-        ("◻", str(len(numeric_cols)),  "Numeric"),
-        ("◻", str(len(cat_cols)),      "Categorical"),
-        ("◻", f"{miss_pct}%",          "Missing"),
-        ("◻", str(dup_count),          "Duplicates"),
+        ("◈", f"{df.shape[0]:,}",    "Total Rows"),
+        ("◈", str(df.shape[1]),       "Columns"),
+        ("◈", str(len(numeric_cols)), "Numeric"),
+        ("◈", str(len(cat_cols)),     "Categorical"),
+        ("◈", f"{miss_pct}%",         "Missing Data"),
+        ("◈", str(dup_count),         "Duplicates"),
     ], S))
-    story.append(Spacer(1, 8 * mm))
+    story.append(Spacer(1, 9 * mm))
 
     # ── Table of Contents ──
-    toc_hdr = Table([[
+    avail = W - 40 * mm
+    toc_hdr_row = Table([[
+        Table([[""]], colWidths=[3], rowHeights=[6 * mm]),
         Paragraph("Table of Contents",
-                  ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=12,
-                                 textColor=DARK, spaceAfter=0)),
-    ]], colWidths=[W - 40 * mm])
-    toc_hdr.setStyle(TableStyle([
-        ("LINEBELOW",     (0, 0), (-1, -1), 2, PURPLE),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                  ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=11,
+                                 textColor=DARK, leading=14)),
+    ]], colWidths=[5, avail - 5])
+    toc_hdr_row.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (0, -1), PURPLE),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",   (1, 0), (1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LINEBELOW",     (0, 0), (-1, -1), 1.5, PURPLE),
     ]))
-    story.append(toc_hdr)
+    story.append(toc_hdr_row)
     story.append(Spacer(1, 3 * mm))
 
     sections = [
-        ("01", "Executive Summary",        "Overview of dataset scope, patterns, and business implications"),
-        ("02", "Key Findings",             "Five data-driven insights with specific metrics"),
-        ("03", "Charts & Visualisations",  "Trend, distribution, correlation, and composition charts"),
-        ("04", "Statistical Summary",      "Descriptive statistics and correlation analysis"),
-        ("05", "Anomalies & Data Quality", "Outliers, missing data, skewness, and data health"),
-        ("06", "Actionable Recommendations","Five strategic actions based on the analysis"),
-        ("07", "Appendix — Column Profiles","Per-column numeric and categorical breakdowns"),
+        ("01", "Executive Summary",         "Dataset scope, key patterns, and business implications"),
+        ("02", "Key Findings",              "Five data-driven insights with specific metrics"),
+        ("03", "Charts & Visualisations",   "Trend, distribution, correlation, and composition charts"),
+        ("04", "Statistical Summary",       "Descriptive statistics and correlation analysis"),
+        ("05", "Anomalies & Data Quality",  "Outliers, missing data, skewness, and data health"),
+        ("06", "Actionable Recommendations","Five strategic actions based on the AI analysis"),
+        ("07", "Appendix — Column Profiles","Per-column numeric and categorical profile breakdowns"),
     ]
     toc_rows = [[
         Paragraph(num, S["toc_num"]),
@@ -454,14 +517,15 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
         Paragraph(desc, S["body_small"]),
     ] for num, name, desc in sections]
 
-    toc_t = Table(toc_rows, colWidths=[12 * mm, 52 * mm, W - 40 * mm - 64 * mm])
+    toc_t = Table(toc_rows, colWidths=[12 * mm, 54 * mm, avail - 66 * mm])
     toc_t.setStyle(TableStyle([
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 5),
         ("LINEBELOW",     (0, 0), (-1, -1), 0.3, BORDER),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS",(0, 0), (-1, -1), [white, ROW_ALT]),
+        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
     ]))
     story.append(toc_t)
 
