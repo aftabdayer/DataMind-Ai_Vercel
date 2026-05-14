@@ -537,8 +537,9 @@ async def generate_pdf(
 
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
-    charts        = _build_charts(df)
-    forecast      = _build_forecast(df)
+    # Skip chart rendering in PDF to avoid timeout on free tier
+    charts: list = []
+    forecast      = None
 
     try:
         pdf_bytes = generate_pdf_report(
