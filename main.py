@@ -436,8 +436,26 @@ for this specific dataset and what it implies for analysis reliability.
     charts     = _build_charts(df)
     forecast   = _build_forecast(df)
 
-    # 5. Dataset preview
-    preview_rows = df.head(50).replace({np.nan: None}).to_dict(orient="records")
+    # 5. Dataset preview — convert Timestamps and other non-serializable types to str
+    import pandas as _pd
+    preview_df = df.head(50).replace({np.nan: None})
+    # Convert datetime columns to ISO strings
+    for col in preview_df.columns:
+        if preview_df[col].dtype == "object":
+            preview_df[col] = preview_df[col].astype(str).where(preview_df[col].notna(), None)
+        elif hasattr(preview_df[col], "dt"):
+            preview_df[col] = preview_df[col].astype(str)
+    preview_rows = []
+    for row in preview_df.to_dict(orient="records"):
+        clean = {}
+        for k, v in row.items():
+            if hasattr(v, "isoformat"):
+                clean[k] = v.isoformat()
+            elif hasattr(v, "item"):          # numpy scalar
+                clean[k] = v.item()
+            else:
+                clean[k] = v
+        preview_rows.append(clean)
     preview_cols = [{"key": c, "label": c} for c in df.columns]
 
     # 6. Column info
