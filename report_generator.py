@@ -1,3 +1,4 @@
+import re
 """
 report_generator.py — Premium PDF Report Builder for DataMind AI
 Professional A4 report: Cover · Executive Summary · Key Findings ·
@@ -80,6 +81,18 @@ def _fig_to_png(fig, width: int = 800, height: int = 380) -> Optional[io.BytesIO
 # ─────────────────────────────────────────────
 # STYLES
 # ─────────────────────────────────────────────
+
+
+def _clean_md(text: str) -> str:
+    """Strip markdown formatting for PDF paragraphs."""
+    if not text:
+        return text
+    text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\*{1,3}([^*\n]+)\*{1,3}', r'\1', text)
+    text = re.sub(r'^[ \t]*[-*]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
 
 def _styles() -> dict:
     S: dict = {}
@@ -498,6 +511,7 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
 
 def _build_exec_summary(story: list, text: str, S: dict):
     story.extend(_section_header("1", "Executive Summary", S))
+    text = _clean_md(text)
     paras = [p.strip() for p in text.split("\n") if p.strip()]
     for i, para in enumerate(paras):
         story.append(Paragraph(para, S["body"]))
@@ -507,25 +521,26 @@ def _build_exec_summary(story: list, text: str, S: dict):
 
 def _build_key_findings(story: list, text: str, S: dict):
     story.extend(_section_header("2", "Key Findings", S))
-    lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
-    for line in lines:
-        is_numbered = len(line) > 1 and line[0].isdigit()
-        if is_numbered and ":" in line:
-            parts = line.split(":", 1)
-            t = parts[0].strip().lstrip("0123456789. ").strip("*").strip()
-            b = parts[1].strip() if len(parts) > 1 else ""
-            story.append(KeepTogether([
-                _card(t, b, S, bar=PURPLE, bg=PURPLE_LT),
-                Spacer(1, 3 * mm),
-            ]))
-        elif is_numbered:
-            story.append(_card("", line, S, bar=PURPLE, bg=PURPLE_LT))
-            story.append(Spacer(1, 3 * mm))
-        else:
-            story.append(_card("", line, S, bar=BORDER, bg=ROW_ALT))
-            story.append(Spacer(1, 2 * mm))
-
-
+    import re as _re
+    blocks = _re.split(r'(?m)^(?=\d+[\.)\s]|#{1,3}\s)', text.strip())
+    if len(blocks) <= 1:
+        blocks = [b.strip() for b in text.splitlines() if b.strip() and len(b.strip()) > 4]
+    for block in blocks:
+        block = block.strip()
+        if not block or len(block) < 4:
+            continue
+        parts = block.split('\n', 1)
+        title_raw = parts[0].strip()
+        body_raw  = parts[1].strip() if len(parts) > 1 else ""
+        title = _re.sub(r'^[#\d\.\)\-\s]+', '', title_raw).strip('* ').strip()
+        body  = _clean_md(body_raw)
+        if not body and ':' in title:
+            sp = title.split(':', 1)
+            title, body = sp[0].strip(), sp[1].strip()
+        story.append(KeepTogether([
+            _card(title, body, S, bar=PURPLE, bg=PURPLE_LT),
+            Spacer(1, 4 * mm),
+        ]))
 def _build_charts_section(story: list, charts: list, forecast_fig, S: dict):
     story.extend(_section_header("3", "Charts & Visualisations", S))
 
@@ -647,16 +662,23 @@ def _build_statistical_summary(story: list, df: pd.DataFrame,
 def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
     story.extend(_section_header("5", "Anomalies & Data Quality", S))
 
-    paras = [p.strip() for p in text.split("\n") if p.strip()]
-    for para in paras:
-        lo = para.lower()
-        if any(w in lo for w in ["critical", "extreme", "major", "significant"]):
+    # Split into paragraphs by double-newline; clean each one
+    cleaned = _clean_md(text)
+    blocks = [b.strip() for b in re.split(r"\n{2,}", cleaned) if b.strip() and len(b.strip()) > 10]
+    for block in blocks:
+        lo = block.lower()
+        if any(w in lo for w in ["critical", "extreme", "major", "severe"]):
             bar, bg = RED, RED_LT
-        elif any(w in lo for w in ["moderate", "warning", "missing", "outlier", "duplicate", "skew"]):
+        elif any(w in lo for w in ["outlier", "skew", "missing", "warning", "moderate", "duplicate"]):
             bar, bg = AMBER, AMBER_LT
         else:
             bar, bg = GREEN, GREEN_LT
-        story.append(_card("", para, S, bar=bar, bg=bg))
+        # If block has a first line that looks like a title, split it
+        lines = block.split("\n", 1)
+        if len(lines) == 2 and len(lines[0]) < 80:
+            story.append(_card(lines[0].strip(), lines[1].strip(), S, bar=bar, bg=bg))
+        else:
+            story.append(_card("", block, S, bar=bar, bg=bg))
         story.append(Spacer(1, 3 * mm))
 
     # Outlier table
@@ -703,21 +725,26 @@ def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
 
 def _build_recommendations(story: list, text: str, S: dict):
     story.extend(_section_header("6", "Actionable Recommendations", S))
-    lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
-    for line in lines:
-        is_numbered = len(line) > 1 and line[0].isdigit()
-        if is_numbered and ":" in line:
-            parts = line.split(":", 1)
-            t = parts[0].strip().lstrip("0123456789. ").strip("*").strip()
-            b = parts[1].strip() if len(parts) > 1 else ""
-            story.append(KeepTogether([
-                _card(t, b, S, bar=GREEN, bg=GREEN_LT),
-                Spacer(1, 3 * mm),
-            ]))
-        else:
-            story.append(_card("", line, S, bar=GREEN, bg=GREEN_LT))
-            story.append(Spacer(1, 3 * mm))
-
+    import re as _re
+    blocks = _re.split(r'(?m)^(?=\d+[\.)\s]|#{1,3}\s)', text.strip())
+    if len(blocks) <= 1:
+        blocks = [b.strip() for b in text.splitlines() if b.strip() and len(b.strip()) > 4]
+    for block in blocks:
+        block = block.strip()
+        if not block or len(block) < 4:
+            continue
+        parts = block.split('\n', 1)
+        title_raw = parts[0].strip()
+        body_raw  = parts[1].strip() if len(parts) > 1 else ""
+        title = _re.sub(r'^[#\d\.\)\-\s]+', '', title_raw).strip('* ').strip()
+        body  = _clean_md(body_raw)
+        if not body and ':' in title:
+            sp = title.split(':', 1)
+            title, body = sp[0].strip(), sp[1].strip()
+        story.append(KeepTogether([
+            _card(title, body, S, bar=GREEN, bg=GREEN_LT),
+            Spacer(1, 4 * mm),
+        ]))
 
 def _build_appendix(story: list, df: pd.DataFrame, stats_summary: dict, S: dict):
     story.extend(_section_header("7", "Appendix — Column Profiles", S))

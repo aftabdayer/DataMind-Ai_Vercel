@@ -373,6 +373,12 @@ async def analyse(
     if df.empty:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
+    # Sample large datasets to prevent timeout on free tier
+    original_rows = len(df)
+    MAX_ROWS = 5000
+    if len(df) > MAX_ROWS:
+        df = df.sample(n=MAX_ROWS, random_state=42).reset_index(drop=True)
+
     # 2. Statistical analysis
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
@@ -527,6 +533,8 @@ async def generate_pdf(
     recommendations: str = Form(""),
     health_score: int = Form(0),
     health_grade: str = Form("Good"),
+    charts_json: str = Form("[]"),
+    forecast_json: str = Form("null"),
 ):
     """Generate and return the PDF report as bytes."""
     try:
@@ -535,11 +543,28 @@ async def generate_pdf(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File parse error: {e}")
 
+    if len(df) > 5000:
+        df = df.sample(n=5000, random_state=42).reset_index(drop=True)
+
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
-    # Skip chart rendering in PDF to avoid timeout on free tier
+
+    import plotly.io as _pio
     charts: list = []
-    forecast      = None
+    try:
+        for c in json.loads(charts_json):
+            if c:
+                charts.append(_pio.from_json(json.dumps(c)))
+    except Exception:
+        charts = []
+
+    forecast = None
+    try:
+        fd = json.loads(forecast_json)
+        if fd:
+            forecast = _pio.from_json(json.dumps(fd))
+    except Exception:
+        forecast = None
 
     try:
         pdf_bytes = generate_pdf_report(
