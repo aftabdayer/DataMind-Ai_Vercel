@@ -346,6 +346,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/warmup")
+def warmup():
+    """Called by frontend on first load to wake up the Render free tier instance."""
+    return {"status": "warm", "timestamp": datetime.utcnow().isoformat()}
+
+
 # ── UPLOAD & ANALYSE ─────────────────────────────────────────────────────────
 
 @app.post("/api/analyse")

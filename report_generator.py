@@ -1,4 +1,3 @@
-import re
 """
 report_generator.py — Premium PDF Report Builder for DataMind AI
 Professional A4 report: Cover · Executive Summary · Key Findings ·
@@ -28,32 +27,27 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # ─────────────────────────────────────────────
-# PALETTE  (Stitch-inspired premium design)
+# PALETTE  (matches the dark-premium web UI)
 # ─────────────────────────────────────────────
-INK        = HexColor("#0d0d12")        # cover base
-INK2       = HexColor("#13131a")        # cover secondary
-NAVY       = HexColor("#0b1025")        # cover accent band
-COVER_LINE = HexColor("#2d1f6e")        # cover divider
+INK        = HexColor("#0f0c29")        # cover background
+NAVY       = HexColor("#0d1b3e")        # cover accent
 PURPLE     = HexColor("#7c3aed")        # primary accent
-PURPLE_MID = HexColor("#6d28d9")        # deeper purple
-PURPLE_LT  = HexColor("#f5f3ff")        # finding card bg
-PURPLE_BAR = HexColor("#8b5cf6")        # bar accent
+PURPLE_MID = HexColor("#6d28d9")        # darker purple
+PURPLE_LT  = HexColor("#ede9fe")        # light purple tint
 BLUE       = HexColor("#3b82f6")        # secondary accent
-BLUE_LT    = HexColor("#eff6ff")        # blue card bg
-GREEN      = HexColor("#059669")        # reco / positive
-GREEN_LT   = HexColor("#ecfdf5")        # reco card bg
+BLUE_LT    = HexColor("#eff6ff")        # light blue tint
+GREEN      = HexColor("#059669")        # recommendation / positive
+GREEN_LT   = HexColor("#ecfdf5")        # light green tint
 AMBER      = HexColor("#d97706")        # warning
-AMBER_LT   = HexColor("#fffbeb")        # anomaly card bg
+AMBER_LT   = HexColor("#fffbeb")        # light amber tint
 RED        = HexColor("#dc2626")        # danger
-RED_LT     = HexColor("#fff1f2")        # danger card bg
-DARK       = HexColor("#1e293b")        # primary body text
+RED_LT     = HexColor("#fef2f2")        # light red tint
+DARK       = HexColor("#1e293b")        # body text
 MID        = HexColor("#475569")        # secondary text
-LIGHT      = HexColor("#94a3b8")        # muted / captions
-BORDER     = HexColor("#e2e8f0")        # hairlines
+LIGHT      = HexColor("#94a3b8")        # muted text
+BORDER     = HexColor("#e2e8f0")        # hairline
 PAGE_BG    = HexColor("#ffffff")        # page background
 ROW_ALT    = HexColor("#f8fafc")        # alternating row
-HDR_BG     = HexColor("#1e293b")        # header background
-HDR_RULE   = HexColor("#7c3aed")        # left-edge accent rule
 
 
 # ─────────────────────────────────────────────
@@ -61,18 +55,25 @@ HDR_RULE   = HexColor("#7c3aed")        # left-edge accent rule
 # ─────────────────────────────────────────────
 
 def _fig_to_png(fig, width: int = 800, height: int = 380) -> Optional[io.BytesIO]:
-    """Render Plotly figure → PNG bytes. Returns None on failure."""
+    """Render Plotly figure to PNG bytes using kaleido.
+    Returns None silently on any failure (e.g. no display on server).
+    """
     try:
         import plotly.io as pio
+        import os
+        # Required for headless rendering on Linux servers (Render.com)
+        os.environ.setdefault("KALEIDO_CHROME_FLAGS", "--no-sandbox --disable-dev-shm-usage")
         f2 = copy.deepcopy(fig)
         f2.update_layout(
             paper_bgcolor="white",
             plot_bgcolor="#f8f9ff",
-            font=dict(color="#1e293b", family="Arial"),
+            font=dict(color="#1e293b", family="Arial, sans-serif"),
+            margin=dict(l=40, r=20, t=40, b=40),
         )
         f2.update_xaxes(gridcolor="#f0f0f0", linecolor="#e2e8f0", zerolinecolor="#e2e8f0")
         f2.update_yaxes(gridcolor="#f0f0f0", linecolor="#e2e8f0", zerolinecolor="#e2e8f0")
-        png = pio.to_image(f2, format="png", width=width, height=height, scale=2)
+        png = pio.to_image(f2, format="png", width=width, height=height, scale=2,
+                           engine="kaleido")
         return io.BytesIO(png)
     except Exception:
         return None
@@ -81,18 +82,6 @@ def _fig_to_png(fig, width: int = 800, height: int = 380) -> Optional[io.BytesIO
 # ─────────────────────────────────────────────
 # STYLES
 # ─────────────────────────────────────────────
-
-
-def _clean_md(text: str) -> str:
-    """Strip markdown formatting for PDF paragraphs."""
-    if not text:
-        return text
-    text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\*{1,3}([^*\n]+)\*{1,3}', r'\1', text)
-    text = re.sub(r'^[ \t]*[-*]\s+', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    return text.strip()
-
 
 def _styles() -> dict:
     S: dict = {}
@@ -198,55 +187,41 @@ def _cover_tpl(doc):
 
 def _body_tpl(doc, title: str):
     W, H = A4
-    M  = 20 * mm
-    FH = 14 * mm
-    HH = 14 * mm
+    M = 20 * mm
+    FH = 12 * mm   # footer height
+    HH = 13 * mm   # header height
 
     def on_page(canvas, doc):
         canvas.saveState()
-        # ── header bar ──
-        canvas.setFillColor(HDR_BG)
+        # ── header ──
+        canvas.setFillColor(DARK)
         canvas.rect(0, H - HH, W, HH, fill=1, stroke=0)
-        canvas.setFillColor(HDR_RULE)
-        canvas.rect(0, H - HH, 3.5, HH, fill=1, stroke=0)
-        # Logo mark
+        # left rule line
         canvas.setFillColor(PURPLE)
-        canvas.roundRect(M, H - HH + 3.5 * mm, 6 * mm, 6 * mm, 1.5 * mm, fill=1, stroke=0)
-        canvas.setFont("Helvetica-Bold", 7)
-        canvas.setFillColor(white)
-        canvas.drawCentredString(M + 3 * mm, H - HH + 5.3 * mm, "D")
-        # Title text
-        canvas.setFont("Helvetica-Bold", 7)
+        canvas.rect(0, H - HH, 4, HH, fill=1, stroke=0)
+        # title
+        canvas.setFont("Helvetica-Bold", 7.5)
         canvas.setFillColor(HexColor("#94a3b8"))
-        short_title = (title[:52] + "…") if len(title) > 52 else title
-        canvas.drawString(M + 8 * mm, H - HH + 5.3 * mm, short_title.upper())
-        # Right: date
-        canvas.setFont("Helvetica", 7)
-        canvas.setFillColor(HexColor("#475569"))
-        canvas.drawRightString(W - M, H - HH + 5.3 * mm,
+        canvas.drawString(M + 4, H - HH + 4.5 * mm, title.upper())
+        # right — date
+        canvas.setFont("Helvetica", 7.5)
+        canvas.setFillColor(HexColor("#64748b"))
+        canvas.drawRightString(W - M, H - HH + 4.5 * mm,
                                datetime.now().strftime("%d %B %Y"))
+
         # ── footer ──
-        canvas.setStrokeColor(HexColor("#e2e8f0"))
-        canvas.setLineWidth(0.4)
-        canvas.line(M, FH, W - M, FH)
-        canvas.setFillColor(PURPLE)
-        canvas.circle(M + 1.5 * mm, FH - 3.5 * mm, 1.5 * mm, fill=1, stroke=0)
-        canvas.setFont("Helvetica-Bold", 6.5)
-        canvas.setFillColor(MID)
-        canvas.drawString(M + 5 * mm, FH - 5 * mm, "DataMind AI")
-        canvas.setFont("Helvetica", 6.5)
+        canvas.setStrokeColor(BORDER)
+        canvas.setLineWidth(0.5)
+        canvas.line(M, FH + 2 * mm, W - M, FH + 2 * mm)
+        canvas.setFont("Helvetica", 7)
         canvas.setFillColor(LIGHT)
-        canvas.drawString(M + 5 * mm + 38, FH - 5 * mm, "· Confidential")
-        canvas.setFont("Helvetica-Bold", 7)
-        canvas.setFillColor(MID)
-        canvas.drawCentredString(W / 2, FH - 5 * mm, f"Page {doc.page}")
-        canvas.setFont("Helvetica", 6.5)
-        canvas.setFillColor(LIGHT)
-        canvas.drawRightString(W - M, FH - 5 * mm, "AI-Generated Report")
+        canvas.drawString(M, FH - 2 * mm, "DataMind AI · Confidential")
+        canvas.drawCentredString(W / 2, FH - 2 * mm, f"Page {doc.page}")
+        canvas.drawRightString(W - M, FH - 2 * mm, "AI-Generated Report")
         canvas.restoreState()
 
-    frame = Frame(M, FH + 3 * mm, W - 2 * M,
-                  H - HH - FH - 5 * mm, id="body_frame")
+    frame = Frame(M, FH + 4 * mm, W - 2 * M,
+                  H - HH - FH - 6 * mm, id="body_frame")
     return PageTemplate(id="Body", frames=[frame], onPage=on_page)
 
 
@@ -255,7 +230,6 @@ def _body_tpl(doc, title: str):
 # ─────────────────────────────────────────────
 
 def _section_header(num: str, title: str, S: dict) -> list:
-    """Section header with vertical bar accent — matches Stitch web design."""
     label = f"0{num}" if len(num) == 1 else num
     return [
         Paragraph(f"{label}  ·  SECTION", S["section_label"]),
@@ -267,24 +241,22 @@ def _section_header(num: str, title: str, S: dict) -> list:
 
 def _card(title: str, body: str, S: dict,
           bar: HexColor = PURPLE, bg: HexColor = PURPLE_LT) -> Table:
-    """Card with 2px left bar accent, subtle bg, rounded feel."""
-    cell_content = []
+    """Bordered card with coloured left bar, bold title, body text."""
+    content = []
     if title:
-        cell_content.append(Paragraph(title, S["card_title"]))
-        cell_content.append(Spacer(1, 1.5 * mm))
-    cell_content.append(Paragraph(body, S["card_body"]))
+        content.append(Paragraph(title, S["card_title"]))
+        content.append(Spacer(1, 1.5 * mm))
+    content.append(Paragraph(body, S["card_body"]))
 
-    avail = A4[0] - 40 * mm
-    t = Table([[cell_content]], colWidths=[avail])
+    t = Table([[content]], colWidths=["100%"])
     t.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), bg),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 12),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
-        ("TOPPADDING",    (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LINEBEFORE",    (0, 0), (0, -1),  3, bar),
-        ("LINEBELOW",     (0, 0), (-1, -1), 0.4, BORDER),
-        ("BOX",           (0, 0), (-1, -1), 0.4, BORDER),
+        ("TOPPADDING",    (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LINEBEFORE",    (0, 0), (0, -1),  4, bar),
+        ("LINEBELOW",     (0, 0), (-1, -1), 0.3, BORDER),
     ]))
     return t
 
@@ -380,59 +352,55 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
                  S: dict):
     W, H = A4
 
-    # ── Dark hero block (full-width, two-tone) ──
+    # ── Full-page dark gradient block ──
+    items_in_block = []
+    items_in_block.append(Spacer(1, 22 * mm))
+
+    # Eyebrow
+    items_in_block.append(Paragraph("◈  DATAMIND AI  ·  POWERED BY GROQ LLAMA 3.3 · 70B", S["cover_eyebrow"]))
+    items_in_block.append(Spacer(1, 8 * mm))
+
+    # Title
+    items_in_block.append(Paragraph(title, S["cover_title"]))
+    items_in_block.append(Spacer(1, 3 * mm))
+    items_in_block.append(Paragraph("AI-Generated Business Intelligence Report", S["cover_subtitle"]))
+    items_in_block.append(Spacer(1, 6 * mm))
+
+    # Divider line
+    items_in_block.append(HRFlowable(
+        width="55%", thickness=1, color=HexColor("#4c1d95"),
+        spaceAfter=6, hAlign="CENTRE",
+    ))
+
+    # Meta
+    items_in_block.append(Paragraph(
+        f"Organisation: <b>{company}</b>   ·   Analyst: <b>{analyst}</b>   ·   Tone: <b>{tone}</b>",
+        S["cover_meta"],
+    ))
+    items_in_block.append(Paragraph(
+        f"Industry: <b>{industry}</b>   ·   Generated: <b>{datetime.now().strftime('%d %B %Y, %H:%M')}</b>",
+        S["cover_meta"],
+    ))
+    items_in_block.append(Paragraph(
+        f"Source file: {filename}",
+        S["cover_meta"],
+    ))
+    items_in_block.append(Spacer(1, 10 * mm))
+
+    # Health badge on cover
     health_colours = {
         "Excellent": "#16a34a", "Good": "#2563eb",
         "Fair": "#d97706", "Poor": "#dc2626",
     }
-    hc = health_colours.get(health_grade, "#7c3aed")
-
-    items_in_block = []
-    items_in_block.append(Spacer(1, 28 * mm))
-
-    # Eyebrow pill
-    items_in_block.append(Paragraph(
-        "◈  &nbsp; DATAMIND AI  &nbsp; ·  &nbsp; GROQ LLAMA 3.3 · 70B",
-        S["cover_eyebrow"],
-    ))
+    hc = health_colours.get(health_grade, "#6d28d9")
+    items_in_block.append(
+        Table([[Paragraph(
+            f'<font color="{hc}">◉</font>  Data Health: <b><font color="{hc}">{health_grade}</font></b> &nbsp; ({health_score}/100)',
+            ParagraphStyle("hbadge", fontName="Helvetica-Bold", fontSize=9,
+                           textColor=HexColor("#94a3b8"), alignment=TA_CENTER),
+        )]], colWidths=[100 * mm])
+    )
     items_in_block.append(Spacer(1, 10 * mm))
-
-    # Main title
-    items_in_block.append(Paragraph(title, S["cover_title"]))
-    items_in_block.append(Spacer(1, 4 * mm))
-    items_in_block.append(Paragraph(
-        "AI-Generated Business Intelligence Report",
-        S["cover_subtitle"],
-    ))
-    items_in_block.append(Spacer(1, 8 * mm))
-
-    # Thin accent rule
-    items_in_block.append(HRFlowable(
-        width="45%", thickness=1.5, color=HexColor("#4c1d95"),
-        spaceAfter=8, hAlign="CENTRE",
-    ))
-
-    # Meta lines
-    items_in_block.append(Paragraph(
-        f"<b>{company}</b> &nbsp; · &nbsp; Prepared by <b>{analyst}</b> &nbsp; · &nbsp; {tone} tone",
-        S["cover_meta"],
-    ))
-    items_in_block.append(Paragraph(
-        f"Industry: <b>{industry}</b> &nbsp; · &nbsp; {datetime.now().strftime('%d %B %Y, %H:%M')}",
-        S["cover_meta"],
-    ))
-    items_in_block.append(Spacer(1, 10 * mm))
-
-    # Health score badge row
-    items_in_block.append(Table(
-        [[Paragraph(
-            f'<font color="{hc}">●</font> &nbsp; Data Health Score: &nbsp; <b><font color="{hc}">{health_grade}</font></b> &nbsp; <font color="#475569">({health_score} / 100)</font>',
-            ParagraphStyle("hbadge", fontName="Helvetica-Bold", fontSize=9.5,
-                           textColor=HexColor("#94a3b8"), alignment=TA_CENTER, leading=14),
-        )]],
-        colWidths=[110 * mm],
-    ))
-    items_in_block.append(Spacer(1, 12 * mm))
 
     cover_block = Table(
         [[item] for item in items_in_block],
@@ -448,41 +416,44 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
     ]))
     story.append(cover_block)
 
-    # ── Dataset KPI strip ──
+    # ── KPI tiles ──
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     cat_cols     = df.select_dtypes(include=["object", "category"]).columns.tolist()
     miss_pct     = round(df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100, 1)
     dup_count    = int(df.duplicated().sum())
 
-    story.append(Spacer(1, 7 * mm))
+    story.append(Spacer(1, 6 * mm))
     story.append(_kpi_row([
-        ("◈", f"{df.shape[0]:,}",    "Total Rows"),
-        ("◈", str(df.shape[1]),       "Columns"),
-        ("◈", str(len(numeric_cols)), "Numeric"),
-        ("◈", str(len(cat_cols)),     "Categorical"),
-        ("◈", f"{miss_pct}%",         "Missing Data"),
-        ("◈", str(dup_count),         "Duplicates"),
+        ("◻", f"{df.shape[0]:,}",     "Total Rows"),
+        ("◻", str(df.shape[1]),        "Columns"),
+        ("◻", str(len(numeric_cols)),  "Numeric"),
+        ("◻", str(len(cat_cols)),      "Categorical"),
+        ("◻", f"{miss_pct}%",          "Missing"),
+        ("◻", str(dup_count),          "Duplicates"),
     ], S))
-    story.append(Spacer(1, 9 * mm))
+    story.append(Spacer(1, 8 * mm))
 
     # ── Table of Contents ──
-    avail = W - 40 * mm
-    story.append(Paragraph(
-        "Table of Contents",
-        ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=11,
-                       textColor=DARK, leading=14, spaceAfter=3),
-    ))
-    story.append(HRFlowable(width="100%", thickness=2, color=PURPLE,
-                            spaceAfter=4, spaceBefore=2))
+    toc_hdr = Table([[
+        Paragraph("Table of Contents",
+                  ParagraphStyle("tochdr", fontName="Helvetica-Bold", fontSize=12,
+                                 textColor=DARK, spaceAfter=0)),
+    ]], colWidths=[W - 40 * mm])
+    toc_hdr.setStyle(TableStyle([
+        ("LINEBELOW",     (0, 0), (-1, -1), 2, PURPLE),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.append(toc_hdr)
+    story.append(Spacer(1, 3 * mm))
 
     sections = [
-        ("01", "Executive Summary",          "Dataset scope, key patterns, and business implications"),
-        ("02", "Key Findings",               "Five data-driven insights with specific metrics"),
-        ("03", "Charts & Visualisations",    "Trend, distribution, correlation, and composition charts"),
-        ("04", "Statistical Summary",        "Descriptive statistics and correlation analysis"),
-        ("05", "Anomalies & Data Quality",   "Outliers, missing data, skewness, and data health"),
-        ("06", "Actionable Recommendations", "Five strategic actions based on the AI analysis"),
-        ("07", "Appendix — Column Profiles", "Per-column numeric and categorical profile breakdowns"),
+        ("01", "Executive Summary",        "Overview of dataset scope, patterns, and business implications"),
+        ("02", "Key Findings",             "Five data-driven insights with specific metrics"),
+        ("03", "Charts & Visualisations",  "Trend, distribution, correlation, and composition charts"),
+        ("04", "Statistical Summary",      "Descriptive statistics and correlation analysis"),
+        ("05", "Anomalies & Data Quality", "Outliers, missing data, skewness, and data health"),
+        ("06", "Actionable Recommendations","Five strategic actions based on the analysis"),
+        ("07", "Appendix — Column Profiles","Per-column numeric and categorical breakdowns"),
     ]
     toc_rows = [[
         Paragraph(num, S["toc_num"]),
@@ -490,17 +461,14 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
         Paragraph(desc, S["body_small"]),
     ] for num, name, desc in sections]
 
-    cw1, cw2 = 12 * mm, 56 * mm
-    toc_t = Table(toc_rows, colWidths=[cw1, cw2, avail - cw1 - cw2])
+    toc_t = Table(toc_rows, colWidths=[12 * mm, 52 * mm, W - 40 * mm - 64 * mm])
     toc_t.setStyle(TableStyle([
-        ("TOPPADDING",    (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 4),
         ("LINEBELOW",     (0, 0), (-1, -1), 0.3, BORDER),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS",(0, 0), (-1, -1), [white, ROW_ALT]),
-        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
     ]))
     story.append(toc_t)
 
@@ -511,7 +479,6 @@ def _build_cover(story: list, title: str, company: str, analyst: str,
 
 def _build_exec_summary(story: list, text: str, S: dict):
     story.extend(_section_header("1", "Executive Summary", S))
-    text = _clean_md(text)
     paras = [p.strip() for p in text.split("\n") if p.strip()]
     for i, para in enumerate(paras):
         story.append(Paragraph(para, S["body"]))
@@ -521,31 +488,53 @@ def _build_exec_summary(story: list, text: str, S: dict):
 
 def _build_key_findings(story: list, text: str, S: dict):
     story.extend(_section_header("2", "Key Findings", S))
-    import re as _re
-    blocks = _re.split(r'(?m)^(?=\d+[\.)\s]|#{1,3}\s)', text.strip())
-    if len(blocks) <= 1:
-        blocks = [b.strip() for b in text.splitlines() if b.strip() and len(b.strip()) > 4]
-    for block in blocks:
-        block = block.strip()
-        if not block or len(block) < 4:
-            continue
-        parts = block.split('\n', 1)
-        title_raw = parts[0].strip()
-        body_raw  = parts[1].strip() if len(parts) > 1 else ""
-        title = _re.sub(r'^[#\d\.\)\-\s]+', '', title_raw).strip('* ').strip()
-        body  = _clean_md(body_raw)
-        if not body and ':' in title:
-            sp = title.split(':', 1)
-            title, body = sp[0].strip(), sp[1].strip()
-        story.append(KeepTogether([
-            _card(title, body, S, bar=PURPLE, bg=PURPLE_LT),
-            Spacer(1, 4 * mm),
-        ]))
+    lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
+    for line in lines:
+        is_numbered = len(line) > 1 and line[0].isdigit()
+        if is_numbered and ":" in line:
+            parts = line.split(":", 1)
+            t = parts[0].strip().lstrip("0123456789. ").strip("*").strip()
+            b = parts[1].strip() if len(parts) > 1 else ""
+            story.append(KeepTogether([
+                _card(t, b, S, bar=PURPLE, bg=PURPLE_LT),
+                Spacer(1, 3 * mm),
+            ]))
+        elif is_numbered:
+            story.append(_card("", line, S, bar=PURPLE, bg=PURPLE_LT))
+            story.append(Spacer(1, 3 * mm))
+        else:
+            story.append(_card("", line, S, bar=BORDER, bg=ROW_ALT))
+            story.append(Spacer(1, 2 * mm))
+
+
 def _build_charts_section(story: list, charts: list, forecast_fig, S: dict):
     story.extend(_section_header("3", "Charts & Visualisations", S))
 
     if not charts and forecast_fig is None:
         story.append(Paragraph("No charts were generated for this dataset.", S["body"]))
+        return
+
+    # Test if kaleido works before attempting all charts
+    kaleido_ok = False
+    if charts:
+        test_buf = _fig_to_png(charts[0], width=200, height=100)
+        kaleido_ok = test_buf is not None
+
+    if not kaleido_ok:
+        # Kaleido not available on this server — show notice and skip chart images
+        story.append(_card(
+            "Charts Unavailable in PDF",
+            "Interactive charts are available in the web app. "
+            "Chart image rendering requires a display environment not available on this server. "
+            "All data, statistics, anomalies, and recommendations are fully included in this report.",
+            S, bar=BLUE, bg=BLUE_LT,
+        ))
+        story.append(Spacer(1, 4 * mm))
+        story.append(Paragraph(
+            "View the full interactive charts at your DataMind AI web app.",
+            S["body_small"],
+        ))
+        story.append(Spacer(1, 3 * mm))
         return
 
     chart_meta = [
@@ -662,23 +651,16 @@ def _build_statistical_summary(story: list, df: pd.DataFrame,
 def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
     story.extend(_section_header("5", "Anomalies & Data Quality", S))
 
-    # Split into paragraphs by double-newline; clean each one
-    cleaned = _clean_md(text)
-    blocks = [b.strip() for b in re.split(r"\n{2,}", cleaned) if b.strip() and len(b.strip()) > 10]
-    for block in blocks:
-        lo = block.lower()
-        if any(w in lo for w in ["critical", "extreme", "major", "severe"]):
+    paras = [p.strip() for p in text.split("\n") if p.strip()]
+    for para in paras:
+        lo = para.lower()
+        if any(w in lo for w in ["critical", "extreme", "major", "significant"]):
             bar, bg = RED, RED_LT
-        elif any(w in lo for w in ["outlier", "skew", "missing", "warning", "moderate", "duplicate"]):
+        elif any(w in lo for w in ["moderate", "warning", "missing", "outlier", "duplicate", "skew"]):
             bar, bg = AMBER, AMBER_LT
         else:
             bar, bg = GREEN, GREEN_LT
-        # If block has a first line that looks like a title, split it
-        lines = block.split("\n", 1)
-        if len(lines) == 2 and len(lines[0]) < 80:
-            story.append(_card(lines[0].strip(), lines[1].strip(), S, bar=bar, bg=bg))
-        else:
-            story.append(_card("", block, S, bar=bar, bg=bg))
+        story.append(_card("", para, S, bar=bar, bg=bg))
         story.append(Spacer(1, 3 * mm))
 
     # Outlier table
@@ -725,26 +707,21 @@ def _build_anomalies(story: list, text: str, anomalies: dict, S: dict):
 
 def _build_recommendations(story: list, text: str, S: dict):
     story.extend(_section_header("6", "Actionable Recommendations", S))
-    import re as _re
-    blocks = _re.split(r'(?m)^(?=\d+[\.)\s]|#{1,3}\s)', text.strip())
-    if len(blocks) <= 1:
-        blocks = [b.strip() for b in text.splitlines() if b.strip() and len(b.strip()) > 4]
-    for block in blocks:
-        block = block.strip()
-        if not block or len(block) < 4:
-            continue
-        parts = block.split('\n', 1)
-        title_raw = parts[0].strip()
-        body_raw  = parts[1].strip() if len(parts) > 1 else ""
-        title = _re.sub(r'^[#\d\.\)\-\s]+', '', title_raw).strip('* ').strip()
-        body  = _clean_md(body_raw)
-        if not body and ':' in title:
-            sp = title.split(':', 1)
-            title, body = sp[0].strip(), sp[1].strip()
-        story.append(KeepTogether([
-            _card(title, body, S, bar=GREEN, bg=GREEN_LT),
-            Spacer(1, 4 * mm),
-        ]))
+    lines = [l.strip() for l in text.split("\n") if l.strip() and len(l.strip()) > 4]
+    for line in lines:
+        is_numbered = len(line) > 1 and line[0].isdigit()
+        if is_numbered and ":" in line:
+            parts = line.split(":", 1)
+            t = parts[0].strip().lstrip("0123456789. ").strip("*").strip()
+            b = parts[1].strip() if len(parts) > 1 else ""
+            story.append(KeepTogether([
+                _card(t, b, S, bar=GREEN, bg=GREEN_LT),
+                Spacer(1, 3 * mm),
+            ]))
+        else:
+            story.append(_card("", line, S, bar=GREEN, bg=GREEN_LT))
+            story.append(Spacer(1, 3 * mm))
+
 
 def _build_appendix(story: list, df: pd.DataFrame, stats_summary: dict, S: dict):
     story.extend(_section_header("7", "Appendix — Column Profiles", S))
