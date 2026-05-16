@@ -549,28 +549,17 @@ async def generate_pdf(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File parse error: {e}")
 
-    if len(df) > 5000:
-        df = df.sample(n=5000, random_state=42).reset_index(drop=True)
+    # Use smaller sample for PDF to keep generation fast on free tier
+    if len(df) > 2000:
+        df = df.sample(n=2000, random_state=42).reset_index(drop=True)
 
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
 
-    import plotly.io as _pio
+    # Skip chart reconstruction — charts are handled client-side
+    # PDF chart rendering requires kaleido which may not be available on server
     charts: list = []
-    try:
-        for c in json.loads(charts_json):
-            if c:
-                charts.append(_pio.from_json(json.dumps(c)))
-    except Exception:
-        charts = []
-
     forecast = None
-    try:
-        fd = json.loads(forecast_json)
-        if fd:
-            forecast = _pio.from_json(json.dumps(fd))
-    except Exception:
-        forecast = None
 
     try:
         pdf_bytes = generate_pdf_report(
@@ -598,7 +587,7 @@ async def generate_pdf(
             headers={"Content-Disposition": f'attachment; filename="{report_title}.pdf"'},
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)[:200]}")
 
 
 # ── CHAT ─────────────────────────────────────────────────────────────────────
