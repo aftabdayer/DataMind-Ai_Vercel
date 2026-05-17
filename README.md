@@ -1,99 +1,80 @@
-# 🧠 DataMind AI — Business Intelligence Platform
+# ⚙️ DataMind AI — Backend (FastAPI)
 
-> Upload any dataset → Get a full AI-written business report with charts, forecasts & PDF download
+> **FastAPI backend** for DataMind AI — statistical analysis engine, data quality scoring, Groq LLM integration, and PDF report generation from any CSV/Excel upload.
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red?style=flat-square&logo=streamlit)
-![Groq](https://img.shields.io/badge/Powered%20by-Groq%20AI-orange?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+👉 **[Live App](https://datamind-ai-frontend.vercel.app/)** &nbsp;|&nbsp; 🖥️ **[Frontend Repo](https://github.com/aftabdayer/datamind-frontend)**
 
----
-
-## ✨ What It Does
-
-**DataMind AI** turns raw CSV or Excel files into a complete business intelligence report in under 60 seconds — no coding required.
-
-| Feature | Details |
-|---|---|
-| 📊 **5 Smart Charts** | Trend, distribution, heatmap, scatter, violin — auto-built from your data |
-| 🤖 **AI-Written Analysis** | Executive summary, key findings & recommendations via Groq LLM |
-| 📈 **Trend Forecast** | Linear regression forecast with future projection |
-| ⚠️ **Anomaly Detection** | Outliers, skewness, missing values & data quality scoring |
-| 📄 **PDF Download** | Full professional report with all sections |
-| 💬 **Chat With Data** | Ask questions about your dataset in natural language |
+> **Note:** This repo was previously named `DataMind-Ai_Vercel`. Renamed to `datamind-backend` for clarity — this contains the FastAPI backend, not a Vercel deployment.
 
 ---
 
-## 🚀 Live Demo
+## What This Repo Contains
 
-👉 **[Try it here](https://aftabdayer-datamind-ai-app.streamlit.app)** *(bring your own free Groq API key)*
+This is the API and analysis engine for DataMind AI. It handles:
+
+- Ingesting CSV/Excel uploads
+- Statistical analysis (distributions, correlations, outlier detection)
+- Data quality scoring (flags skewness, missing values, anomalies)
+- Linear regression forecasting
+- Groq + LLaMA3 AI analysis and natural language Q&A
+- PDF report generation via ReportLab
 
 ---
 
-## 🛠️ Run Locally
+## API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /analyze` | Upload CSV/Excel → returns stats, charts, quality score |
+| `POST /forecast` | Run linear regression forecast on a numeric column |
+| `POST /report` | Generate and return full PDF report |
+| `POST /chat` | Natural language Q&A about the uploaded dataset |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| API Framework | FastAPI · Python |
+| Analysis | pandas · NumPy · scikit-learn |
+| Charts | Plotly |
+| PDF Generation | ReportLab |
+| LLM | Groq API · LLaMA3 |
+| Deployment | Render |
+
+---
+
+## Running Locally
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/aftabdayer/datamind-ai.git
-cd datamind-ai
+# 1. Clone
+git clone https://github.com/aftabdayer/datamind-backend.git
+cd datamind-backend
 
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run the app
-streamlit run app.py
+# 3. Set your Groq API key
+export GROQ_API_KEY=your_key_here
+
+# 4. Start the server
+uvicorn main:app --reload
 ```
 
-Get your **free Groq API key** at [console.groq.com](https://console.groq.com) — no credit card needed.
+API will be available at `http://localhost:8000`  
+Docs at `http://localhost:8000/docs`
 
 ---
 
-## 📁 Project Structure
+## Origin
 
-```
-datamind-ai/
-├── app.py                # Main Streamlit application
-├── data_analyzer.py      # Statistical analysis engine
-├── report_generator.py   # PDF report builder (ReportLab)
-├── requirements.txt      # Python dependencies
-└── .streamlit/
-    └── config.toml       # UI theme configuration
-```
+> The original single-file Streamlit prototype of this project is preserved at [datamind-ai](https://github.com/aftabdayer/datamind-ai).  
+> This backend, combined with [datamind-frontend](https://github.com/aftabdayer/datamind-frontend), is the full production version.
 
 ---
 
-## 📦 Requirements
+## Author
 
-- Python 3.10+
-- A free [Groq API key](https://console.groq.com)
-- CSV or Excel file (.csv / .xlsx)
-
----
-
-## 🔑 How To Use
-
-1. Open the app and enter your **Groq API key** in the sidebar
-2. Upload your **CSV or Excel** file
-3. Fill in report title, company name, analyst name
-4. Click **Generate Full AI Report**
-5. Explore charts, findings, forecasts → download the PDF
-
----
-
-## 🧰 Built With
-
-- [Streamlit](https://streamlit.io) — Web UI
-- [Groq](https://groq.com) — LLM inference (llama3)
-- [Plotly](https://plotly.com) — Interactive charts
-- [ReportLab](https://www.reportlab.com) — PDF generation
-- [Pandas](https://pandas.pydata.org) / [NumPy](https://numpy.org) — Data processing
-
----
-
-## 📄 License
-
-MIT — free to use, modify, and distribute.
-
----
-
-*Built by [Aftab Dayer](https://github.com/aftabdayer)*
+**Aftab Dayer** · [LinkedIn](https://linkedin.com/in/aftabdayer) · [GitHub](https://github.com/aftabdayer)  
+NIT Hamirpur 2025 · IEEE Published · Microsoft Power BI Certified (PL-300)
