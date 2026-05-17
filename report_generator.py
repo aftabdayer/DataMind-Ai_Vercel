@@ -541,50 +541,46 @@ def _build_key_findings(story: list, text: str, S: dict):
             _card(title, body, S, bar=PURPLE, bg=PURPLE_LT),
             Spacer(1, 4 * mm),
         ]))
-def _build_charts_section(story: list, charts: list, forecast_fig, S: dict):
+def _build_charts_section(story: list, chart_pngs: list, forecast_png, S: dict):
+    """Render charts from pre-captured PNG bytes (captured in browser via Plotly.toImage)."""
     story.extend(_section_header("3", "Charts & Visualisations", S))
 
-    if not charts and forecast_fig is None:
-        story.append(Paragraph("No charts were generated for this dataset.", S["body"]))
+    if not chart_pngs and forecast_png is None:
+        story.append(Paragraph("No charts were included in this report.", S["body"]))
         return
 
-    chart_meta = [
-        ("Trend Over Time",          155, 78),
-        ("Category Comparison",      155, 78),
-        ("Correlation Matrix",       155, 88),
-        ("Distribution (Violin)",    155, 88),
-        ("Scatter Plot",             155, 78),
-        ("Composition (Donut)",      155, 78),
-        ("Top-N Ranking",            155, 78),
+    chart_labels = [
+        "Trend Over Time", "Category Comparison", "Correlation Matrix",
+        "Distribution", "Scatter Plot", "Composition", "Top Segments",
     ]
 
-    # Pair charts that work side-by-side (two per row, ~74mm each)
-    # Full-width: heatmap (idx 2), violin (idx 3)
     full_width_idx = {2, 3}
     i = 0
-    while i < len(charts):
+    while i < len(chart_pngs):
+        png = chart_pngs[i]
+        label = chart_labels[i] if i < len(chart_labels) else f"Chart {i+1}"
         if i in full_width_idx:
-            label, _w, h = chart_meta[i] if i < len(chart_meta) else (f"Chart {i+1}", 155, 85)
-            story.extend(_chart_flowable(charts[i], label, S, 155, h))
+            buf = io.BytesIO(png)
+            img = Image(buf, width=155 * mm, height=85 * mm)
+            img.hAlign = "LEFT"
+            story.append(img)
+            story.append(Paragraph(label, S["caption"]))
+            story.append(Spacer(1, 5 * mm))
             i += 1
-        elif i + 1 < len(charts) and (i + 1) not in full_width_idx:
-            # Side-by-side pair
-            la = chart_meta[i][0]   if i   < len(chart_meta) else f"Chart {i+1}"
-            lb = chart_meta[i+1][0] if i+1 < len(chart_meta) else f"Chart {i+2}"
-            pair_w = 74
-            pair_h = 72
-            buf_a = _fig_to_png(charts[i],   width=int(pair_w * 4), height=int(pair_h * 4))
-            buf_b = _fig_to_png(charts[i+1], width=int(pair_w * 4), height=int(pair_h * 4))
+        elif i + 1 < len(chart_pngs) and (i + 1) not in full_width_idx:
+            la = chart_labels[i]   if i   < len(chart_labels) else f"Chart {i+1}"
+            lb = chart_labels[i+1] if i+1 < len(chart_labels) else f"Chart {i+2}"
+            pair_w, pair_h = 74, 70
 
-            def _cell(buf, lbl, pw=pair_w, ph=pair_h, S=S):
-                if buf is None:
+            def _cell(png_bytes, lbl, pw=pair_w, ph=pair_h):
+                if not png_bytes:
                     return [Paragraph(f"[{lbl} unavailable]", S["caption"])]
-                img = Image(buf, width=pw * mm, height=ph * mm)
+                img = Image(io.BytesIO(png_bytes), width=pw * mm, height=ph * mm)
                 img.hAlign = "CENTRE"
                 return [img, Paragraph(lbl, S["caption"])]
 
             pair = Table(
-                [[_cell(buf_a, la), _cell(buf_b, lb)]],
+                [[_cell(png, la), _cell(chart_pngs[i+1], lb)]],
                 colWidths=[(pair_w + 3) * mm, (pair_w + 3) * mm],
             )
             pair.setStyle(TableStyle([
@@ -597,17 +593,23 @@ def _build_charts_section(story: list, charts: list, forecast_fig, S: dict):
             story.append(Spacer(1, 5 * mm))
             i += 2
         else:
-            label, _w, h = chart_meta[i] if i < len(chart_meta) else (f"Chart {i+1}", 155, 78)
-            story.extend(_chart_flowable(charts[i], label, S, 155, h))
+            buf = io.BytesIO(png)
+            img = Image(buf, width=155 * mm, height=78 * mm)
+            img.hAlign = "LEFT"
+            story.append(img)
+            story.append(Paragraph(label, S["caption"]))
+            story.append(Spacer(1, 5 * mm))
             i += 1
 
-    # Forecast chart — full width
-    if forecast_fig is not None:
+    if forecast_png is not None:
         story.append(Spacer(1, 3 * mm))
         story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=6))
         story.append(Paragraph("Trend Forecast (Linear Regression)", S["card_title"]))
         story.append(Spacer(1, 2 * mm))
-        story.extend(_chart_flowable(forecast_fig, "Linear regression forecast with confidence band", S, 155, 85))
+        buf = io.BytesIO(forecast_png)
+        img = Image(buf, width=155 * mm, height=85 * mm)
+        img.hAlign = "LEFT"
+        story.append(img)
 
 
 def _build_statistical_summary(story: list, df: pd.DataFrame,
@@ -862,7 +864,7 @@ def generate_pdf_report(
     _build_key_findings(story, key_findings, S)
     story.append(PageBreak())
 
-    _build_charts_section(story, charts, forecast_fig, S)
+    _build_charts_section(story, chart_pngs, forecast_png, S)
     story.append(PageBreak())
 
     _build_statistical_summary(story, df, stats_summary, S)

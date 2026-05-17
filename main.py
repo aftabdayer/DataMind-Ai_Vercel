@@ -533,8 +533,8 @@ async def generate_pdf(
     recommendations: str = Form(""),
     health_score: int = Form(0),
     health_grade: str = Form("Good"),
-    charts_json: str = Form("[]"),
-    forecast_json: str = Form("null"),
+    chart_images: str = Form("[]"),
+    forecast_image: str = Form(""),
 ):
     """Generate and return the PDF report as bytes."""
     try:
@@ -549,22 +549,22 @@ async def generate_pdf(
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
 
-    import plotly.io as _pio
-    charts: list = []
+    # Use PNG images captured in browser — no kaleido needed
+    import base64 as _b64
+    chart_pngs: list = []
     try:
-        for c in json.loads(charts_json):
-            if c:
-                charts.append(_pio.from_json(json.dumps(c)))
+        for img in json.loads(chart_images):
+            if img and img.startswith("data:image/png;base64,"):
+                chart_pngs.append(_b64.b64decode(img.split(",", 1)[1]))
     except Exception:
-        charts = []
+        chart_pngs = []
 
-    forecast = None
+    forecast_png = None
     try:
-        fd = json.loads(forecast_json)
-        if fd:
-            forecast = _pio.from_json(json.dumps(fd))
+        if forecast_image and forecast_image.startswith("data:image/png;base64,"):
+            forecast_png = _b64.b64decode(forecast_image.split(",", 1)[1])
     except Exception:
-        forecast = None
+        forecast_png = None
 
     try:
         pdf_bytes = generate_pdf_report(
