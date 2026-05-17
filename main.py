@@ -523,71 +523,81 @@ for this specific dataset and what it implies for analysis reliability.
 
 
 # ── PDF EXPORT ───────────────────────────────────────────────────────────────
+# New lightweight endpoint — accepts pre-computed data, no file re-upload needed.
+# This avoids Render timeout by skipping re-analysis of the dataset.
+
+class PDFRequest(BaseModel):
+    report_title:      str = "Business Intelligence Report"
+    organisation:      str = "My Organisation"
+    analyst:           str = "DataMind AI"
+    tone:              str = "Professional"
+    industry:          str = "General"
+    filename:          str = "dataset"
+    exec_summary:      str = ""
+    key_findings:      str = ""
+    anomaly_narrative: str = ""
+    recommendations:   str = ""
+    health_score:      int = 0
+    health_grade:      str = "Good"
+    stats_json:        str = "{}"
+    anomalies_json:    str = "{}"
+    meta_json:         str = "{}"
 
 @app.post("/api/pdf")
-async def generate_pdf(
-    file: UploadFile = File(...),
-    api_key: str = Form(...),
-    report_title: str = Form("Business Intelligence Report"),
-    organisation: str = Form("My Organisation"),
-    analyst: str = Form("DataMind AI"),
-    tone: str = Form("Professional"),
-    industry: str = Form("General"),
-    exec_summary: str = Form(""),
-    key_findings: str = Form(""),
-    anomaly_narrative: str = Form(""),
-    recommendations: str = Form(""),
-    health_score: int = Form(0),
-    health_grade: str = Form("Good"),
-    charts_json: str = Form("[]"),
-    forecast_json: str = Form("null"),
-):
-    """Generate and return the PDF report as bytes."""
+async def generate_pdf(req: PDFRequest):
+    """Generate PDF from pre-computed report data. No file re-upload needed."""
     try:
-        raw = await file.read()
-        df  = _load_df(raw, file.filename)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"File parse error: {e}")
+        stats_summary = json.loads(req.stats_json)
+        anomalies     = json.loads(req.anomalies_json)
+        meta          = json.loads(req.meta_json)
+    except Exception:
+        stats_summary, anomalies, meta = {}, {}, {}
 
-    # Use smaller sample for PDF to keep generation fast on free tier
-    if len(df) > 2000:
-        df = df.sample(n=2000, random_state=42).reset_index(drop=True)
-
-    stats_summary = analyze_dataframe(df)
-    anomalies     = detect_anomalies(df)
-
-    # Skip chart reconstruction — charts are handled client-side
-    # PDF chart rendering requires kaleido which may not be available on server
-    charts: list = []
-    forecast = None
+    # Build a minimal DataFrame from stats for the PDF appendix
+    try:
+        key_stats = stats_summary.get("key_stats", {})
+        if key_stats:
+            rows = []
+            for col, s in key_stats.items():
+                row = {"column": col}
+                row.update(s)
+                rows.append(row)
+            df = pd.DataFrame(rows).set_index("column").T
+            # Transpose back so rows=observations — just use a summary frame
+            df = pd.DataFrame({col: [s.get("mean", 0)] * max(1, meta.get("rows", 10) // 100)
+                               for col, s in key_stats.items()})
+        else:
+            df = pd.DataFrame({"value": [0] * 10})
+    except Exception:
+        df = pd.DataFrame({"value": [0] * 10})
 
     try:
         pdf_bytes = generate_pdf_report(
-            title=report_title,
-            company=organisation,
-            analyst=analyst,
-            filename=file.filename,
+            title=req.report_title,
+            company=req.organisation,
+            analyst=req.analyst,
+            filename=req.filename,
             df=df,
-            exec_summary=exec_summary,
-            key_findings=key_findings,
-            anomaly_narrative=anomaly_narrative,
-            recommendations=recommendations,
+            exec_summary=req.exec_summary,
+            key_findings=req.key_findings,
+            anomaly_narrative=req.anomaly_narrative,
+            recommendations=req.recommendations,
             stats_summary=stats_summary,
             anomalies=anomalies,
-            charts=charts,
-            forecast_fig=forecast,
-            tone=tone,
-            industry=industry,
-            health_score=health_score,
-            health_grade=health_grade,
+            charts=[],
+            forecast_fig=None,
+            tone=req.tone,
+            industry=req.industry,
+            health_score=req.health_score,
+            health_grade=req.health_grade,
         )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{report_title}.pdf"'},
+            headers={"Content-Disposition": f'attachment; filename="{req.report_title}.pdf"'},
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)[:200]}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)[:300]}")
 
 
 # ── CHAT ─────────────────────────────────────────────────────────────────────
