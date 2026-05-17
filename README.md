@@ -4,31 +4,47 @@
 
 👉 **[Live App](https://datamind-ai-frontend.vercel.app/)** &nbsp;|&nbsp; 🖥️ **[Frontend Repo](https://github.com/aftabdayer/datamind-frontend)**
 
-> **Note:** This repo was previously named `DataMind-Ai_Vercel`. Renamed to `datamind-backend` for clarity — this contains the FastAPI backend, not a Vercel deployment.
-
 ---
 
 ## What This Repo Contains
 
-This is the API and analysis engine for DataMind AI. It handles:
-
-- Ingesting CSV/Excel uploads
-- Statistical analysis (distributions, correlations, outlier detection)
-- Data quality scoring (flags skewness, missing values, anomalies)
-- Linear regression forecasting
-- Groq + LLaMA3 AI analysis and natural language Q&A
-- PDF report generation via ReportLab
+This is the API and analysis engine for DataMind AI. Upload a dataset → get back AI-written analysis, interactive charts, forecasts, anomaly detection, and a downloadable PDF — all in under 60 seconds.
 
 ---
 
 ## API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST /analyze` | Upload CSV/Excel → returns stats, charts, quality score |
-| `POST /forecast` | Run linear regression forecast on a numeric column |
-| `POST /report` | Generate and return full PDF report |
-| `POST /chat` | Natural language Q&A about the uploaded dataset |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check — confirms the server is up |
+| `GET` | `/api/warmup` | Wakes up the Render free-tier instance on first load |
+| `POST` | `/api/analyse` | **Main endpoint** — upload CSV/Excel + settings → returns full analysis JSON (stats, anomalies, AI narratives, charts, forecast, health score, dataset preview) |
+| `POST` | `/api/pdf` | Generate and download a PDF report from pre-computed analysis data |
+| `POST` | `/api/chat` | Natural language Q&A about the uploaded dataset via Groq LLM |
+| `POST` | `/api/validate-key` | Validate a Groq API key before running analysis |
+
+---
+
+## `/api/analyse` — What It Returns
+
+```json
+{
+  "meta":       { "filename", "rows", "cols", "missing_pct", ... },
+  "health":     { "score": 87, "grade": "Excellent", "commentary": "..." },
+  "stats":      { "key_stats per column" },
+  "anomalies":  { "outliers", "constant_columns", "high_missing" },
+  "narratives": {
+    "exec_summary":       "3-paragraph AI summary",
+    "key_findings":       "5 numbered findings with data",
+    "anomaly_narrative":  "Business significance of anomalies",
+    "recommendations":    "5 numbered actionable recommendations"
+  },
+  "charts":     [ "Plotly JSON — trend, bar, heatmap, violin, scatter, donut, top-N" ],
+  "forecast":   "Plotly JSON — linear regression projection with confidence band",
+  "preview":    { "columns", "rows (first 50)" },
+  "col_info":   [ "dtype, missing%, unique count per column" ]
+}
+```
 
 ---
 
@@ -37,11 +53,24 @@ This is the API and analysis engine for DataMind AI. It handles:
 | Layer | Technology |
 |-------|-----------|
 | API Framework | FastAPI · Python |
-| Analysis | pandas · NumPy · scikit-learn |
+| Analysis | pandas · NumPy · SciPy · scikit-learn |
 | Charts | Plotly |
 | PDF Generation | ReportLab |
-| LLM | Groq API · LLaMA3 |
+| LLM | Groq API · LLaMA-3.3-70b |
 | Deployment | Render |
+
+---
+
+## Project Structure
+
+```
+datamind-backend/
+├── main.py              ← All FastAPI routes
+├── data_analyzer.py     ← Statistical analysis + anomaly detection
+├── report_generator.py  ← ReportLab PDF builder
+├── render.yaml          ← Render deployment config
+└── requirements.txt
+```
 
 ---
 
@@ -55,22 +84,21 @@ cd datamind-backend
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Set your Groq API key
-export GROQ_API_KEY=your_key_here
-
-# 4. Start the server
+# 3. Start the server
 uvicorn main:app --reload
 ```
 
-API will be available at `http://localhost:8000`  
-Docs at `http://localhost:8000/docs`
+API available at `http://localhost:8000`  
+Interactive docs at `http://localhost:8000/docs`
+
+Get a free Groq API key at [console.groq.com](https://console.groq.com) — no credit card needed.
 
 ---
 
 ## Origin
 
-> The original single-file Streamlit prototype of this project is preserved at [datamind-ai](https://github.com/aftabdayer/datamind-ai).  
-> This backend, combined with [datamind-frontend](https://github.com/aftabdayer/datamind-frontend), is the full production version.
+> The original single-file Streamlit prototype is preserved at [datamind-ai](https://github.com/aftabdayer/datamind-ai) (archived — live app no longer running).  
+> This backend + [datamind-frontend](https://github.com/aftabdayer/datamind-frontend) is the full production version.
 
 ---
 
