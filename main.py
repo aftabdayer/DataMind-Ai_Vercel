@@ -383,6 +383,22 @@ async def analyse(
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
     col_insights  = get_column_insights(df)
+
+    # Domain-logic anomaly: flag rows where Cost exceeds Sales (business data)
+    cost_col  = next((c for c in df.columns if "cost" in c.lower()), None)
+    sales_col = next((c for c in df.columns if "sale" in c.lower() or "revenue" in c.lower() or "price" in c.lower()), None)
+    if cost_col and sales_col:
+        try:
+            bad_rows = int((df[cost_col] > df[sales_col]).sum())
+            if bad_rows > 0:
+                anomalies["cost_exceeds_sales"] = {
+                    "count": bad_rows,
+                    "pct": round(bad_rows / len(df) * 100, 1),
+                    "cost_col": cost_col,
+                    "sales_col": sales_col,
+                }
+        except Exception:
+            pass
     health_score, health_grade = _compute_health_score(df, anomalies)
 
     # 3. Groq AI narratives
@@ -405,29 +421,52 @@ async def analyse(
         f"Stats summary: {json.dumps(stats_summary, default=str)[:1500]}"
     )
 
-    exec_summary = _call_groq(client, f"""
+    exec_summary = _call_groq(client, f"""\
 Write a 3-paragraph executive summary for this dataset.
-Cover: scope & structure, key statistical patterns, and business implications.
+Paragraph 1 — Scope & structure: what the data covers, date range if present, row/column count.
+Paragraph 2 — Key statistical patterns: highlight the most important numeric trends, \
+distributions, and any categories that dominate.
+Paragraph 3 — Business implications: what decisions or risks this data reveals. \
+If cost and sales/revenue columns exist, comment on profit margins. \
+If date data is present, comment on year-over-year or period-over-period trends.
 Tone: {tone}. Organisation: {organisation}. Industry: {industry}.
 {context}
 """)
 
-    key_findings = _call_groq(client, f"""
+    key_findings = _call_groq(client, f"""\
 Write exactly 5 key findings numbered 1 to 5.
 Format each as: NUMBER. TITLE: Description with specific numbers from the data.
+Requirements:
+- Finding 1: Overall revenue/sales volume and top-line performance
+- Finding 2: Profit margin analysis — if cost and sales columns exist, calculate and flag \
+any categories or time periods where margin is negative or declining
+- Finding 3: Year-over-year or period trend — is performance improving or deteriorating?
+- Finding 4: Top performer and bottom performer (by category, product, region, or segment)
+- Finding 5: A surprising or counterintuitive pattern in the data
+Use specific numbers. Do not use vague language.
 {context}
 """)
 
     anomaly_context = json.dumps(anomalies, default=str)[:1200]
-    anomaly_narrative = _call_groq(client, f"""
+    anomaly_narrative = _call_groq(client, f"""\
 Analyse these anomalies and explain their business significance clearly.
+Write 4-6 numbered findings. Format: NUMBER. TITLE: Explanation with business impact.
+If cost_exceeds_sales anomaly is present, flag it as a CRITICAL issue — it means \
+the business is selling below cost on those transactions.
 Anomalies: {anomaly_context}
 Dataset context: {context}
 """)
 
-    recommendations = _call_groq(client, f"""
+    recommendations = _call_groq(client, f"""\
 Write exactly 5 numbered actionable recommendations based on this analysis.
 Format: NUMBER. TITLE: Specific action with expected outcome.
+Requirements:
+- If profit margins are low or negative in any segment, recommend a pricing or cost review
+- If year-over-year trends are declining, recommend investigation and corrective action
+- If data quality issues exist (missing, duplicates, outliers), recommend data governance steps
+- Include at least one recommendation about the highest-opportunity segment
+- Include at least one recommendation about the highest-risk finding
+Be specific and actionable, not generic.
 {context}
 Anomalies: {anomaly_context}
 """)
@@ -579,8 +618,8 @@ async def generate_pdf(
             recommendations=recommendations,
             stats_summary=stats_summary,
             anomalies=anomalies,
-            charts=charts,
-            forecast_fig=forecast,
+            chart_pngs=chart_pngs,
+            forecast_png=forecast_png,
             tone=tone,
             industry=industry,
             health_score=health_score,

@@ -61,15 +61,19 @@ def analyze_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
     # Strong correlations
     if len(numeric_cols) >= 2:
         try:
-            corr = df[numeric_cols].corr()
+            # Drop columns that are entirely null before correlating
+            valid_num_cols = [c for c in numeric_cols if df[c].dropna().shape[0] >= 4]
+            corr = df[valid_num_cols].dropna(how="all").corr()
             seen = set()
-            for i, c1 in enumerate(numeric_cols):
-                for c2 in numeric_cols[i + 1:]:
+            for i, c1 in enumerate(valid_num_cols):
+                for c2 in valid_num_cols[i + 1:]:
                     pair = tuple(sorted([c1, c2]))
                     if pair in seen:
                         continue
                     seen.add(pair)
                     val = corr.loc[c1, c2]
+                    if pd.isna(val):
+                        continue
                     if abs(val) >= 0.5:
                         result["strong_correlations"].append({
                             "col1": c1, "col2": c2,
