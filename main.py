@@ -146,9 +146,10 @@ def _build_charts(df: pd.DataFrame) -> list:
         fig.update_layout(**base_layout, title=dict(text=f"{col} trend", font=dict(size=13)))
         charts.append(fig)
 
-    # 2. Bar chart — categorical
-    if cat_cols:
-        col = cat_cols[0]
+    # 2. Bar chart — use first categorical col with a sensible cardinality
+    usable_cat = [c for c in cat_cols if 1 < df[c].nunique() <= 50]
+    if usable_cat:
+        col = usable_cat[0]
         vc = df[col].value_counts().head(10)
         fig = go.Figure(go.Bar(
             x=vc.index.tolist(), y=vc.values.tolist(),
@@ -199,10 +200,15 @@ def _build_charts(df: pd.DataFrame) -> list:
         fig.update_layout(**base_layout, title=dict(text="Statistical Variance", font=dict(size=13)))
         charts.append(fig)
 
-    # 5. Scatter
+    # 5. Scatter — only use cat col for color if it has a manageable number of unique values
     if len(numeric_cols) >= 2:
         x_col, y_col = numeric_cols[0], numeric_cols[1]
-        color_col = cat_cols[0] if cat_cols else None
+        # Only color by category if <= 15 unique values to avoid Plotly crash on high-cardinality cols
+        color_col = None
+        for c in cat_cols:
+            if df[c].nunique() <= 15:
+                color_col = c
+                break
         fig = px.scatter(
             df.sample(min(2000, len(df))),
             x=x_col, y=y_col, color=color_col,
@@ -212,9 +218,9 @@ def _build_charts(df: pd.DataFrame) -> list:
         fig.update_layout(**base_layout, title=dict(text=f"{x_col} vs {y_col}", font=dict(size=13)))
         charts.append(fig)
 
-    # 6. Donut chart
-    if cat_cols:
-        col = cat_cols[0]
+    # 6. Donut chart — same usable_cat filter
+    if usable_cat:
+        col = usable_cat[0]
         vc = df[col].value_counts().head(7)
         fig = go.Figure(go.Pie(
             labels=vc.index.tolist(), values=vc.values.tolist(),
@@ -225,8 +231,8 @@ def _build_charts(df: pd.DataFrame) -> list:
         charts.append(fig)
 
     # 7. Top-N bar
-    if len(numeric_cols) >= 1 and cat_cols:
-        num_col, cat_col = numeric_cols[0], cat_cols[0]
+    if len(numeric_cols) >= 1 and usable_cat:
+        num_col, cat_col = numeric_cols[0], usable_cat[0]
         top = df.groupby(cat_col)[num_col].mean().nlargest(8)
         fig = go.Figure(go.Bar(
             x=top.values.tolist(), y=top.index.tolist(),
@@ -383,33 +389,11 @@ async def analyse(
     stats_summary = analyze_dataframe(df)
     anomalies     = detect_anomalies(df)
     col_insights  = get_column_insights(df)
-
-    # Domain-logic anomaly: flag rows where Cost exceeds Sales (business data)
-    cost_col  = next((c for c in df.columns if "cost" in c.lower()), None)
-    sales_col = next((c for c in df.columns if "sale" in c.lower() or "revenue" in c.lower() or "price" in c.lower()), None)
-    if cost_col and sales_col:
-        try:
-            bad_rows = int((df[cost_col] > df[sales_col]).sum())
-            if bad_rows > 0:
-                anomalies["cost_exceeds_sales"] = {
-                    "count": bad_rows,
-                    "pct": round(bad_rows / len(df) * 100, 1),
-                    "cost_col": cost_col,
-                    "sales_col": sales_col,
-                }
-        except Exception:
-            pass
     health_score, health_grade = _compute_health_score(df, anomalies)
 
     # 3. Groq AI narratives
     try:
         client = Groq(api_key=api_key)
-        # Quick validation call
-        client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": "ping"}],
-            max_tokens=5,
-        )
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid Groq API key.")
 
@@ -421,52 +405,29 @@ async def analyse(
         f"Stats summary: {json.dumps(stats_summary, default=str)[:1500]}"
     )
 
-    exec_summary = _call_groq(client, f"""\
+    exec_summary = _call_groq(client, f"""
 Write a 3-paragraph executive summary for this dataset.
-Paragraph 1 — Scope & structure: what the data covers, date range if present, row/column count.
-Paragraph 2 — Key statistical patterns: highlight the most important numeric trends, \
-distributions, and any categories that dominate.
-Paragraph 3 — Business implications: what decisions or risks this data reveals. \
-If cost and sales/revenue columns exist, comment on profit margins. \
-If date data is present, comment on year-over-year or period-over-period trends.
+Cover: scope & structure, key statistical patterns, and business implications.
 Tone: {tone}. Organisation: {organisation}. Industry: {industry}.
 {context}
 """)
 
-    key_findings = _call_groq(client, f"""\
+    key_findings = _call_groq(client, f"""
 Write exactly 5 key findings numbered 1 to 5.
 Format each as: NUMBER. TITLE: Description with specific numbers from the data.
-Requirements:
-- Finding 1: Overall revenue/sales volume and top-line performance
-- Finding 2: Profit margin analysis — if cost and sales columns exist, calculate and flag \
-any categories or time periods where margin is negative or declining
-- Finding 3: Year-over-year or period trend — is performance improving or deteriorating?
-- Finding 4: Top performer and bottom performer (by category, product, region, or segment)
-- Finding 5: A surprising or counterintuitive pattern in the data
-Use specific numbers. Do not use vague language.
 {context}
 """)
 
     anomaly_context = json.dumps(anomalies, default=str)[:1200]
-    anomaly_narrative = _call_groq(client, f"""\
+    anomaly_narrative = _call_groq(client, f"""
 Analyse these anomalies and explain their business significance clearly.
-Write 4-6 numbered findings. Format: NUMBER. TITLE: Explanation with business impact.
-If cost_exceeds_sales anomaly is present, flag it as a CRITICAL issue — it means \
-the business is selling below cost on those transactions.
 Anomalies: {anomaly_context}
 Dataset context: {context}
 """)
 
-    recommendations = _call_groq(client, f"""\
+    recommendations = _call_groq(client, f"""
 Write exactly 5 numbered actionable recommendations based on this analysis.
 Format: NUMBER. TITLE: Specific action with expected outcome.
-Requirements:
-- If profit margins are low or negative in any segment, recommend a pricing or cost review
-- If year-over-year trends are declining, recommend investigation and corrective action
-- If data quality issues exist (missing, duplicates, outliers), recommend data governance steps
-- Include at least one recommendation about the highest-opportunity segment
-- Include at least one recommendation about the highest-risk finding
-Be specific and actionable, not generic.
 {context}
 Anomalies: {anomaly_context}
 """)
